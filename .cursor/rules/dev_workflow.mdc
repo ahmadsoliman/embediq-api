@@ -1,9 +1,8 @@
 ---
-description: Guide for using Task Master to manage task-driven development workflows
-globs: **/*
-alwaysApply: true
+description: 
+globs: 
+alwaysApply: false
 ---
-
 # Task Master Development Workflow
 
 This guide outlines the typical process for using Task Master to manage software development projects.
@@ -26,6 +25,48 @@ Task Master offers two primary ways to interact:
     - Install globally with `npm install -g task-master-ai` or use locally via `npx task-master-ai ...`.
     - The CLI commands often mirror the MCP tools (e.g., `task-master list` corresponds to `get_tasks`).
     - Refer to [`taskmaster.mdc`](mdc:.cursor/rules/taskmaster.mdc) for a detailed command reference.
+
+## Terminal Command Best Practices
+
+When running commands in the terminal (especially via Cursor or other AI assistants), follow these best practices:
+
+1. **Prevent Pager Issues**:
+   - For commands that might produce large output or use a pager (git, psql, less, more, head, tail, etc.), always pipe through `cat` to avoid getting stuck in an interactive view:
+     ```bash
+     # GOOD: Pipe through cat to prevent pager
+     psql -c "SELECT * FROM table" | cat
+     git log | cat
+     git status | cat
+     git diff | cat
+     docker-compose exec database psql -U user -d dbname -c "SELECT * FROM table" | cat
+     head -n 100 large_file.txt | cat
+     tail -f log_file.log | cat
+     
+     # AVOID: These might open a pager and get stuck
+     psql -c "SELECT * FROM table"
+     git log
+     git status
+     git diff
+     ```
+   - WHY: AI assistants cannot interact with terminal pagers like less/more, causing the session to hang until manually interrupted.
+   - Set git config temporarily if executing multiple git commands: `git -c pager.log=false -c pager.diff=false <command>`
+
+2. **Handle Process Control**:
+   - For commands that might need user input, consider using the `--no-editor` flag when available.
+   - Use `-q` or `--quiet` flags to reduce unnecessary output when appropriate.
+   - Add explicit timeouts for commands that might hang: `timeout 10s command`
+   - For long-running processes, run in background with `&` and capture PID for later termination.
+
+3. **Output Redirection**:
+   - When capturing large outputs, redirect to a file: `command > output.log`
+   - For both stdout and stderr: `command > output.log 2>&1`
+   - For commands with prompts, use `yes | command` or `echo -e "response1\nresponse2" | command`
+
+4. **Formatting Output**:
+   - Use `--format=json` or similar flags for structured output when available.
+   - Consider `jq` or `grep` for filtering output: `command | jq '.key'`
+
+Following these practices helps prevent terminal sessions from getting stuck in interactive modes that AI assistants cannot navigate.
 
 ## Standard Development Workflow Process
 
