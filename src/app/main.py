@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 import logging
 from app.config import DATABASE_URL, DATA_DIR
 import os
+from app.routes.api import api_router
 
 # Configure logging
 logging.basicConfig(
@@ -16,6 +17,9 @@ app = FastAPI(
     description="LightRAG-powered backend for the EmbedIQ application",
     version="0.1.0",
 )
+
+# Include routers
+app.include_router(api_router)
 
 
 @app.on_event("startup")
