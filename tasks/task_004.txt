@@ -1,0 +1,31 @@
+# Task ID: 4
+# Title: Implement RAG Instance Manager
+# Status: pending
+# Dependencies: 2
+# Priority: high
+# Description: Create a manager class to handle LightRAG instances for multiple users with LRU caching.
+# Details:
+Implement the RAGInstanceManager class that maintains a dictionary of user-specific LightRAG instances. Add the LRURAGManager subclass that implements least-recently-used caching to limit memory usage. Implement methods to create, retrieve, and clean up LightRAG instances. Configure the manager to create user-specific directories under the base data path. Initialize LightRAG with appropriate configuration including working directory, LLM model function, embedding function, and database connection string.
+
+# Test Strategy:
+Write unit tests to verify instance creation, retrieval, and LRU eviction behavior. Test with multiple simulated users to ensure proper isolation. Verify directory creation and permissions. Measure memory usage with different numbers of active instances.
+
+# Subtasks:
+## 1. Design and Implement RAGInstanceManager Base Class [pending]
+### Dependencies: None
+### Description: Develop the RAGInstanceManager class to manage user-specific LightRAG instances, including methods for creating, retrieving, and cleaning up instances. Ensure each user has a dedicated directory under the base data path, and initialize LightRAG with the required configuration parameters.
+### Details:
+Define a RAGInstanceManager class that maintains a dictionary mapping user IDs to LightRAG instances. Implement methods such as create_instance(user_id), get_instance(user_id), and cleanup_instance(user_id). When creating an instance, ensure a user-specific directory is created under the base data path. Initialize each LightRAG instance with the appropriate working directory, LLM model function, embedding function, and database connection string.
+
+## 2. Implement LRURAGManager Subclass with LRU Caching [pending]
+### Dependencies: 4.1
+### Description: Extend RAGInstanceManager by creating an LRURAGManager subclass that adds least-recently-used (LRU) caching to limit the number of active LightRAG instances and manage memory usage efficiently.
+### Details:
+Create the LRURAGManager subclass, inheriting from RAGInstanceManager. Integrate an LRU cache mechanism (e.g., using collections.OrderedDict or functools.lru_cache) to automatically evict the least recently used LightRAG instances when the cache limit is reached. Ensure that evicted instances are properly cleaned up by invoking the cleanup_instance method.
+
+## 3. Integrate and Test User-Specific Instance Management Workflow [pending]
+### Dependencies: 4.2
+### Description: Combine the manager and LRU caching logic into a unified workflow. Implement and test the full lifecycle: creating, retrieving, and cleaning up LightRAG instances for multiple users, ensuring correct directory setup and resource management.
+### Details:
+Write integration tests or scripts that simulate multiple users interacting with the manager. Verify that user-specific directories are created, instances are initialized with correct configurations, and the LRU cache properly evicts and cleans up old instances. Confirm that all methods work as expected and that memory usage remains within limits.
+

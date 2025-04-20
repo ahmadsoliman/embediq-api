@@ -1,0 +1,31 @@
+# Task ID: 3
+# Title: Implement Auth0 Integration and Authentication Middleware
+# Status: done
+# Dependencies: 2
+# Priority: high
+# Description: Create middleware for Auth0 JWT validation and user authentication.
+# Details:
+Implement authentication middleware that extracts and validates JWT tokens from request headers. Use python-jose to decode and verify tokens against Auth0 public keys. Extract user ID from the validated token. Create helper functions to handle token validation errors and return appropriate HTTP exceptions. Implement endpoints for token validation (/api/v1/auth/token) and user profile retrieval (/api/v1/auth/profile). Store Auth0 configuration in environment variables.
+
+# Test Strategy:
+Write unit tests for token validation with mock JWT tokens. Test error handling for invalid or expired tokens. Manually test authentication flow with Auth0 development credentials. Verify correct extraction of user identifiers from tokens.
+
+# Subtasks:
+## 1. Configure Auth0 Environment and Helper Functions [done]
+### Dependencies: None
+### Description: Set up environment variables for Auth0 configuration and implement helper functions for JWT validation and error handling.
+### Details:
+Define and load Auth0-related environment variables (domain, audience, client ID, public key URL). Implement helper functions using python-jose to fetch Auth0 public keys, decode and verify JWT tokens, and handle validation errors by returning appropriate HTTP exceptions. Ensure all sensitive configuration is securely managed via environment variables.
+
+## 2. Develop Authentication Middleware for JWT Extraction and Validation [done]
+### Dependencies: 3.1
+### Description: Create middleware that extracts JWT tokens from request headers, validates them using the helper functions, and attaches user information to the request context.
+### Details:
+Implement middleware that intercepts incoming requests, extracts the Authorization header, and retrieves the JWT token. Use the previously created helper functions to decode and validate the token against Auth0 public keys. On successful validation, extract the user ID and attach it to the request context for downstream use. Handle and propagate any validation errors using the error handling helpers.
+
+## 3. Implement Auth Endpoints for Token Validation and User Profile Retrieval [done]
+### Dependencies: 3.2
+### Description: Develop the /api/v1/auth/token and /api/v1/auth/profile endpoints, utilizing the authentication middleware to validate tokens and return user information.
+### Details:
+Create the /api/v1/auth/token endpoint to validate the provided JWT and return a success or error response. Implement the /api/v1/auth/profile endpoint to return the authenticated user's profile information, using the user ID extracted by the middleware. Ensure both endpoints are protected by the authentication middleware and return standardized HTTP responses.
+

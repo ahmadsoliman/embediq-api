@@ -1,0 +1,435 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Setup Docker Environment with PostgreSQL",
+      "description": "Configure Docker Compose for development environment with the pre-configured PostgreSQL image that includes vector and AGE graph extensions.",
+      "status": "done",
+      "dependencies": [],
+      "priority": "high",
+      "details": "Create a docker-compose.yml file in the project root that defines two services: (1) database using the eldoc92/postgres-rag-arm64:latest image with appropriate environment variables, volumes, and port mapping; (2) backend service that builds from a Dockerfile in the backend directory with appropriate volume mounts for code and user data. Define persistent volumes for postgres_data and user_data. Set environment variables for database connection, Auth0 configuration, and data directory paths.",
+      "testStrategy": "Verify Docker Compose setup by running 'docker-compose up' and confirming both services start successfully. Test database connectivity from the backend container. Ensure volumes are properly mounted and persistent across container restarts.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Define Docker Compose Services and Persistent Volumes",
+          "description": "Create a docker-compose.yml file in the project root that defines two services: a PostgreSQL database using the eldoc92/postgres-rag-arm64:latest image, and a backend service built from the backend directory. Set up persistent Docker volumes for postgres_data and user_data.",
+          "status": "done",
+          "dependencies": [],
+          "details": "In the docker-compose.yml file, specify the version (e.g., '3.8'). Under 'services', define the 'database' service with the correct image, port mapping (e.g., 5432:5432), and mount the 'postgres_data' volume to /var/lib/postgresql/data. Define the 'backend' service to build from the backend/Dockerfile, and mount the 'user_data' volume to the appropriate path inside the container. Under 'volumes', declare both 'postgres_data' and 'user_data' as named volumes for data persistence.[1][3]\n\n<info added on 2025-04-20T11:29:08.167Z>\nHere's additional information for your Docker Compose setup:\n\n```yaml\n# Sample docker-compose.yml structure\nversion: '3.8'\n\nservices:\n  database:\n    image: eldoc92/postgres-rag-arm64:latest\n    environment:\n      - POSTGRES_USER=embediq\n      - POSTGRES_PASSWORD=devpassword\n      - POSTGRES_DB=embediq\n    healthcheck:\n      test: [\"CMD-SHELL\", \"pg_isready -U embediq\"]\n      interval: 5s\n      timeout: 5s\n      retries: 5\n    restart: unless-stopped\n    \n  backend:\n    build: \n      context: ./backend\n    environment:\n      - DATABASE_URL=postgresql://embediq:devpassword@database:5432/embediq\n      - AUTH0_DOMAIN=${AUTH0_DOMAIN}\n      - AUTH0_API_AUDIENCE=${AUTH0_API_AUDIENCE}\n      - DATA_DIR=/data/embediq/users\n    restart: unless-stopped\n    depends_on:\n      database:\n        condition: service_healthy\n    networks:\n      - embediq-network\n\nnetworks:\n  embediq-network:\n    driver: bridge\n```\n\nConsider adding:\n1. A healthcheck for the database to ensure the backend only starts when Postgres is ready\n2. Restart policies for both services\n3. A dedicated bridge network for service communication\n4. Using environment variables for sensitive information\n5. The DATA_DIR environment variable should match the mounted user_data volume path\n\nFor local development, you might want to add a .env file in the project root to store AUTH0 credentials and other environment-specific variables.\n</info added on 2025-04-20T11:29:08.167Z>\n\n<info added on 2025-04-20T11:34:52.261Z>\n<info added>\nBased on the updated directory structure, here's how to adjust your Docker Compose configuration:\n\n```yaml\n# Updated build context for backend service\nservices:\n  backend:\n    build: \n      context: ./src  # Changed from ./backend to ./src\n    volumes:\n      - user_data:/data/embediq/users  # Ensure this volume mapping is present\n    # Other configuration remains the same\n```\n\nWhen working with the revised directory structure:\n\n1. Ensure your Dockerfile exists at `./src/Dockerfile` rather than `./backend/Dockerfile`\n2. Update any relative paths in your backend code that might reference the project root\n3. If you have any scripts that reference the backend directory, update them to use `src` instead\n4. Consider adding a `.dockerignore` file in the `src` directory to exclude unnecessary files from the build context\n\nThe change from `backend` to `src` is purely structural and doesn't affect the functionality of your services, but it's important to maintain consistency across your project documentation and references.\n</info added>\n</info added on 2025-04-20T11:34:52.261Z>"
+        },
+        {
+          "id": 2,
+          "title": "Configure Environment Variables for Services",
+          "description": "Set up required environment variables for both the database and backend services in the docker-compose.yml file. This includes PostgreSQL credentials, vector and AGE extension settings, database connection details, Auth0 configuration, and data directory paths.",
+          "status": "done",
+          "dependencies": [
+            1
+          ],
+          "details": "In the 'environment' section for the database service, define variables such as POSTGRES_USER, POSTGRES_PASSWORD, and POSTGRES_DB. If the vector and AGE extensions require additional variables or initialization scripts, include those as well. For the backend service, set environment variables for connecting to the database (host, port, user, password, db), Auth0 client and domain, and any paths needed for user data. Use Docker Compose variable substitution or .env files as appropriate for sensitive data.[1][3][4]\n\n<info added on 2025-04-20T11:35:32.534Z>\nAdd the following to the details section:\n\nFor better security and developer onboarding, create a `.env.example` file in the project root with all required variables:\n\n```\n# Database configuration\nPOSTGRES_USER=postgres\nPOSTGRES_PASSWORD=your_secure_password\nPOSTGRES_DB=knowledge_base\nPOSTGRES_PORT=5432\n\n# Vector extension settings\nVECTOR_EXTENSION_ENABLED=true\nVECTOR_DIMENSION=1536\n\n# AGE extension settings\nAGE_EXTENSION_ENABLED=true\n\n# Backend connection string (constructed from above values)\nDATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}\n\n# Auth0 configuration\nAUTH0_DOMAIN=your-tenant.auth0.com\nAUTH0_API_AUDIENCE=https://your-api-identifier\n\n# Data storage\nDATA_DIR=/app/data\n```\n\nDevelopers should copy this to a `.env` file and customize values. The docker-compose.yml is already correctly configured to use variable substitution (${VAR_NAME}) which will pull values from this .env file at runtime. No additional changes to docker-compose.yml are needed as the environment variables are properly set up.\n</info added on 2025-04-20T11:35:32.534Z>"
+        },
+        {
+          "id": 3,
+          "title": "Implement Backend Service Build and Integration",
+          "description": "Create or update the Dockerfile in the backend directory to build the backend service image. Ensure the Dockerfile supports code and user data volume mounts. Test the integration between the backend and the PostgreSQL service with the configured extensions.",
+          "status": "done",
+          "dependencies": [
+            2
+          ],
+          "details": "Write or modify the backend/Dockerfile to install all necessary dependencies and expose the correct ports. Ensure the backend service can access the mounted user_data volume and connect to the database using the environment variables defined in the previous step. After building the images with 'docker-compose up', verify that the backend can connect to the database and that the vector and AGE extensions are available and functional.\n\n<info added on 2025-04-20T11:36:55.367Z>\nFor the backend Dockerfile implementation, here's additional technical information:\n\n```\n# Create the following directory structure:\nsrc/\n├── Dockerfile\n├── requirements.txt\n├── app/\n│   ├── __init__.py\n│   ├── main.py\n│   ├── config.py\n│   └── db/\n│       ├── __init__.py\n│       └── connection.py\n\n# requirements.txt should include:\nfastapi>=0.95.0\nuvicorn>=0.21.1\npsycopg2-binary>=2.9.6\npython-dotenv>=1.0.0\nsqlalchemy>=2.0.9\nasyncpg>=0.27.0\npgvector>=0.1.8\n\n# In the Dockerfile, include health check configuration:\nHEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \\\n  CMD curl -f http://localhost:8000/health || exit 1\n\n# In app/config.py, implement environment variable handling:\nimport os\nfrom dotenv import load_dotenv\n\nload_dotenv()\n\nDATABASE_URL = os.getenv(\"DATABASE_URL\", \"postgresql://postgres:postgres@db:5432/postgres\")\nVECTOR_DIMENSION = int(os.getenv(\"VECTOR_DIMENSION\", \"1536\"))\n\n# In app/db/connection.py, implement database connection with extension verification:\nfrom sqlalchemy import create_engine, text\nfrom app.config import DATABASE_URL\n\ndef verify_extensions():\n    \"\"\"Verify that required PostgreSQL extensions are available and enabled\"\"\"\n    engine = create_engine(DATABASE_URL)\n    with engine.connect() as conn:\n        # Check vector extension\n        vector_result = conn.execute(text(\"SELECT * FROM pg_extension WHERE extname = 'vector'\")).fetchone()\n        # Check AGE extension\n        age_result = conn.execute(text(\"SELECT * FROM pg_extension WHERE extname = 'age'\")).fetchone()\n        \n        if not vector_result or not age_result:\n            raise RuntimeError(\"Required PostgreSQL extensions are not enabled\")\n        \n        return True\n```\n\nFor volume mounting, ensure the Dockerfile creates and sets permissions for the data directory:\n```\n# In Dockerfile\nRUN mkdir -p /app/data && chmod 777 /app/data\nVOLUME [\"/app/data\"]\n```\n\nWhen testing the integration, use this verification script in app/main.py:\n```python\n@app.get(\"/health\")\nasync def health_check():\n    try:\n        # Verify database connection and extensions\n        from app.db.connection import verify_extensions\n        extensions_ok = verify_extensions()\n        return {\"status\": \"healthy\", \"database\": \"connected\", \"extensions\": extensions_ok}\n    except Exception as e:\n        return {\"status\": \"unhealthy\", \"error\": str(e)}, 500\n```\n</info added on 2025-04-20T11:36:55.367Z>"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Create Backend Dockerfile and Project Structure",
+      "description": "Set up the backend project structure and create a Dockerfile for containerization.",
+      "status": "done",
+      "dependencies": [
+        1
+      ],
+      "priority": "high",
+      "details": "Create a Dockerfile in the backend directory using python:3.10-slim as the base image. Set up the project structure with appropriate directories for routes, middleware, services, and utilities. Initialize a Python FastAPI project with requirements.txt including FastAPI, uvicorn, python-jose for JWT handling, httpx for HTTP requests, and any other required dependencies. Create the main application entry point that initializes FastAPI. Set up health check endpoint for container monitoring.",
+      "testStrategy": "Build the Docker image and verify it runs successfully. Test the health check endpoint. Ensure the project structure follows best practices and all dependencies are correctly specified in requirements.txt.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Initialize Backend Project Structure",
+          "description": "Set up the backend directory with a clear and scalable FastAPI project structure, including subdirectories for routes, middleware, services, and utilities.",
+          "status": "done",
+          "dependencies": [],
+          "details": "Create the backend root directory. Inside, add subdirectories: routes (for API endpoints), middleware (for custom middleware), services (for business logic), and utilities (for helper functions). Add an __init__.py file in each directory to make them Python packages. Create a main.py file at the root as the application entry point. Follow best practices for modular FastAPI applications[2][5]."
+        },
+        {
+          "id": 2,
+          "title": "Initialize FastAPI Application and Health Check Endpoint",
+          "description": "Set up the FastAPI application in main.py, configure the app to include a health check endpoint, and prepare requirements.txt with all necessary dependencies.",
+          "status": "done",
+          "dependencies": [
+            1
+          ],
+          "details": "In main.py, initialize a FastAPI app instance. Implement a basic health check endpoint (e.g., /health) that returns a simple JSON response for container monitoring. Create a requirements.txt file listing FastAPI, uvicorn, python-jose, httpx, and any other required packages. Ensure the app imports and registers routes, middleware, and other components as needed[2][5]."
+        },
+        {
+          "id": 3,
+          "title": "Create Dockerfile for Backend Containerization",
+          "description": "Write a Dockerfile in the backend directory to containerize the FastAPI application using python:3.10-slim as the base image.",
+          "status": "done",
+          "dependencies": [
+            2
+          ],
+          "details": "In the backend directory, create a Dockerfile that uses python:3.10-slim as the base image. Set the working directory, copy project files, install dependencies from requirements.txt, expose the appropriate port (e.g., 80), and define the CMD to start the FastAPI app with uvicorn. Ensure the Dockerfile follows best practices for Python and FastAPI containerization[1][3][4]."
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Implement Auth0 Integration and Authentication Middleware",
+      "description": "Create middleware for Auth0 JWT validation and user authentication.",
+      "status": "done",
+      "dependencies": [
+        2
+      ],
+      "priority": "high",
+      "details": "Implement authentication middleware that extracts and validates JWT tokens from request headers. Use python-jose to decode and verify tokens against Auth0 public keys. Extract user ID from the validated token. Create helper functions to handle token validation errors and return appropriate HTTP exceptions. Implement endpoints for token validation (/api/v1/auth/token) and user profile retrieval (/api/v1/auth/profile). Store Auth0 configuration in environment variables.",
+      "testStrategy": "Write unit tests for token validation with mock JWT tokens. Test error handling for invalid or expired tokens. Manually test authentication flow with Auth0 development credentials. Verify correct extraction of user identifiers from tokens.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Configure Auth0 Environment and Helper Functions",
+          "description": "Set up environment variables for Auth0 configuration and implement helper functions for JWT validation and error handling.",
+          "status": "done",
+          "dependencies": [],
+          "details": "Define and load Auth0-related environment variables (domain, audience, client ID, public key URL). Implement helper functions using python-jose to fetch Auth0 public keys, decode and verify JWT tokens, and handle validation errors by returning appropriate HTTP exceptions. Ensure all sensitive configuration is securely managed via environment variables."
+        },
+        {
+          "id": 2,
+          "title": "Develop Authentication Middleware for JWT Extraction and Validation",
+          "description": "Create middleware that extracts JWT tokens from request headers, validates them using the helper functions, and attaches user information to the request context.",
+          "status": "done",
+          "dependencies": [
+            1
+          ],
+          "details": "Implement middleware that intercepts incoming requests, extracts the Authorization header, and retrieves the JWT token. Use the previously created helper functions to decode and validate the token against Auth0 public keys. On successful validation, extract the user ID and attach it to the request context for downstream use. Handle and propagate any validation errors using the error handling helpers."
+        },
+        {
+          "id": 3,
+          "title": "Implement Auth Endpoints for Token Validation and User Profile Retrieval",
+          "description": "Develop the /api/v1/auth/token and /api/v1/auth/profile endpoints, utilizing the authentication middleware to validate tokens and return user information.",
+          "status": "done",
+          "dependencies": [
+            2
+          ],
+          "details": "Create the /api/v1/auth/token endpoint to validate the provided JWT and return a success or error response. Implement the /api/v1/auth/profile endpoint to return the authenticated user's profile information, using the user ID extracted by the middleware. Ensure both endpoints are protected by the authentication middleware and return standardized HTTP responses."
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Implement RAG Instance Manager",
+      "description": "Create a manager class to handle LightRAG instances for multiple users with LRU caching.",
+      "status": "pending",
+      "dependencies": [
+        2
+      ],
+      "priority": "high",
+      "details": "Implement the RAGInstanceManager class that maintains a dictionary of user-specific LightRAG instances. Add the LRURAGManager subclass that implements least-recently-used caching to limit memory usage. Implement methods to create, retrieve, and clean up LightRAG instances. Configure the manager to create user-specific directories under the base data path. Initialize LightRAG with appropriate configuration including working directory, LLM model function, embedding function, and database connection string.",
+      "testStrategy": "Write unit tests to verify instance creation, retrieval, and LRU eviction behavior. Test with multiple simulated users to ensure proper isolation. Verify directory creation and permissions. Measure memory usage with different numbers of active instances.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Design and Implement RAGInstanceManager Base Class",
+          "description": "Develop the RAGInstanceManager class to manage user-specific LightRAG instances, including methods for creating, retrieving, and cleaning up instances. Ensure each user has a dedicated directory under the base data path, and initialize LightRAG with the required configuration parameters.",
+          "status": "pending",
+          "dependencies": [],
+          "details": "Define a RAGInstanceManager class that maintains a dictionary mapping user IDs to LightRAG instances. Implement methods such as create_instance(user_id), get_instance(user_id), and cleanup_instance(user_id). When creating an instance, ensure a user-specific directory is created under the base data path. Initialize each LightRAG instance with the appropriate working directory, LLM model function, embedding function, and database connection string."
+        },
+        {
+          "id": 2,
+          "title": "Implement LRURAGManager Subclass with LRU Caching",
+          "description": "Extend RAGInstanceManager by creating an LRURAGManager subclass that adds least-recently-used (LRU) caching to limit the number of active LightRAG instances and manage memory usage efficiently.",
+          "status": "pending",
+          "dependencies": [
+            1
+          ],
+          "details": "Create the LRURAGManager subclass, inheriting from RAGInstanceManager. Integrate an LRU cache mechanism (e.g., using collections.OrderedDict or functools.lru_cache) to automatically evict the least recently used LightRAG instances when the cache limit is reached. Ensure that evicted instances are properly cleaned up by invoking the cleanup_instance method."
+        },
+        {
+          "id": 3,
+          "title": "Integrate and Test User-Specific Instance Management Workflow",
+          "description": "Combine the manager and LRU caching logic into a unified workflow. Implement and test the full lifecycle: creating, retrieving, and cleaning up LightRAG instances for multiple users, ensuring correct directory setup and resource management.",
+          "status": "pending",
+          "dependencies": [
+            2
+          ],
+          "details": "Write integration tests or scripts that simulate multiple users interacting with the manager. Verify that user-specific directories are created, instances are initialized with correct configurations, and the LRU cache properly evicts and cleans up old instances. Confirm that all methods work as expected and that memory usage remains within limits."
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Create User-Specific LightRAG Initialization",
+      "description": "Implement functions to initialize and configure LightRAG instances for each user.",
+      "status": "pending",
+      "dependencies": [
+        4
+      ],
+      "priority": "high",
+      "details": "Create utility functions to initialize LightRAG with user-specific working directories. Implement the get_llm_model_func() and get_embedding_func() helper functions that return properly configured model functions for LightRAG. Set up the embedding function with the required 1536 dimension and 8192 max token size as specified in the PRD. Create a dependency injection function (get_rag_for_user) that extracts the user ID from the request and returns the appropriate LightRAG instance using the RAG Instance Manager.",
+      "testStrategy": "Test initialization with different user IDs to ensure unique working directories are created. Verify embedding and LLM model functions are correctly configured. Test the dependency injection in a mock FastAPI endpoint to ensure it correctly retrieves user-specific RAG instances.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Implement User-Specific LightRAG Initialization Utility",
+          "description": "Create a utility function that initializes a LightRAG instance with a user-specific working directory. This function should accept a user identifier and set up the LightRAG instance to use a dedicated directory for each user, ensuring data separation and proper resource allocation.",
+          "status": "pending",
+          "dependencies": [],
+          "details": "Define a function (e.g., initialize_lightrag_for_user(user_id)) that constructs a unique working directory path for each user (such as './rag_storage/{user_id}'). Use this path to initialize the LightRAG instance. Ensure that the directory is created if it does not exist. Reference the LightRAG initialization pattern from the official documentation, passing the working_dir parameter accordingly[1][2]."
+        },
+        {
+          "id": 2,
+          "title": "Develop Model and Embedding Helper Functions",
+          "description": "Implement the get_llm_model_func() and get_embedding_func() helper functions to return properly configured model and embedding functions for LightRAG. Ensure the embedding function is set up with a 1536-dimensional vector and supports up to 8192 tokens, as specified in the PRD.",
+          "status": "pending",
+          "dependencies": [
+            1
+          ],
+          "details": "Define get_llm_model_func() to return the appropriate LLM completion function (e.g., gpt_4o_mini_complete or similar). Define get_embedding_func() to return an embedding function configured for 1536 dimensions and 8192 max token size. If using a built-in embedding function (such as openai_embed), ensure it is parameterized or wrapped to enforce these requirements[1]."
+        },
+        {
+          "id": 3,
+          "title": "Implement Dependency Injection for User-Specific RAG Instances",
+          "description": "Create a dependency injection function (get_rag_for_user) that extracts the user ID from the incoming request and returns the corresponding LightRAG instance using a RAG Instance Manager. This function should ensure that each user receives a properly initialized and configured LightRAG instance.",
+          "status": "pending",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "Implement get_rag_for_user(request) to extract the user ID (e.g., from request headers or session). Use a RAG Instance Manager (such as a singleton or cache) to retrieve or initialize the LightRAG instance for that user, leveraging the utility and helper functions from the previous subtasks. Ensure thread safety and efficient instance reuse where appropriate[2]."
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Implement Document Management API Endpoints",
+      "description": "Create API endpoints for document upload and management using LightRAG.",
+      "status": "pending",
+      "dependencies": [
+        5
+      ],
+      "priority": "medium",
+      "details": "Implement the /api/v1/documents endpoint with POST method for document uploads. Create a temporary file storage mechanism for handling uploaded files before processing with LightRAG. Use the user's LightRAG instance to process and store documents. Implement proper error handling and cleanup of temporary files. Add endpoints for listing, retrieving, and deleting documents. Ensure all operations use the user-specific LightRAG instance obtained through dependency injection.",
+      "testStrategy": "Test document upload with various file types and sizes. Verify documents are correctly processed by LightRAG and stored in user-specific directories. Test error handling for invalid files. Verify temporary files are properly cleaned up after processing. Test document listing and retrieval to ensure only the user's own documents are accessible.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Implement Document Upload Endpoint with Temporary File Storage",
+          "description": "Create the /api/v1/documents POST endpoint to handle document uploads, storing files temporarily before processing with LightRAG.",
+          "status": "pending",
+          "dependencies": [],
+          "details": "Develop the POST /api/v1/documents endpoint to accept file uploads. Implement a temporary file storage mechanism—such as saving files to a temp directory or using an in-memory store—ensuring files are accessible for subsequent processing. Integrate error handling for upload failures and ensure temporary files are cleaned up after processing or on error. Use dependency injection to access the user-specific LightRAG instance for later processing steps."
+        },
+        {
+          "id": 2,
+          "title": "Integrate LightRAG Processing and Persistent Document Storage",
+          "description": "Process uploaded documents using the user-specific LightRAG instance and store processed documents persistently.",
+          "status": "pending",
+          "dependencies": [
+            1
+          ],
+          "details": "After successful upload and temporary storage, invoke the LightRAG instance (retrieved via dependency injection) to process the uploaded document. Store the processed document and its metadata in a persistent storage solution (e.g., database or object storage). Ensure that temporary files are deleted after processing, and implement robust error handling to manage failures during processing or storage."
+        },
+        {
+          "id": 3,
+          "title": "Implement Document Listing, Retrieval, and Deletion Endpoints",
+          "description": "Create endpoints for listing all documents, retrieving a specific document, and deleting documents, ensuring all operations use the user-specific LightRAG instance.",
+          "status": "pending",
+          "dependencies": [
+            2
+          ],
+          "details": "Develop GET /api/v1/documents for listing documents, GET /api/v1/documents/{id} for retrieving a specific document, and DELETE /api/v1/documents/{id} for deleting documents. Ensure each endpoint interacts with the persistent storage and uses the user-specific LightRAG instance for any required document operations. Implement proper error handling and return appropriate HTTP status codes for all operations."
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Implement Query and Search API Endpoints",
+      "description": "Create API endpoints for vector similarity search and RAG-powered queries.",
+      "status": "pending",
+      "dependencies": [
+        5
+      ],
+      "priority": "medium",
+      "details": "Implement the /api/v1/search endpoint for vector similarity search using LightRAG. Create the /api/v1/query endpoint for combined RAG-powered queries. Define request and response models for both endpoints. Implement parameter validation and error handling. Ensure all queries use the user-specific LightRAG instance. Add options for configuring search parameters like maximum chunks to retrieve and similarity thresholds.",
+      "testStrategy": "Test search and query endpoints with various input parameters. Verify results are correctly returned from LightRAG. Test with different user instances to ensure data isolation. Measure response times for different query complexities. Test error handling for invalid queries.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Define Request and Response Models with Parameter Validation",
+          "description": "Design and implement the data models for both /api/v1/search and /api/v1/query endpoints, including all required and optional parameters. Add validation logic for input parameters such as query vectors, maximum chunks, and similarity thresholds. Ensure models are structured for clear API documentation and future extensibility.",
+          "status": "pending",
+          "dependencies": [],
+          "details": "Use a schema validation library (e.g., Pydantic for Python or equivalent) to define request and response models. Specify fields for query vectors, search parameters (e.g., similarity function, max chunks, thresholds), and user identification. Implement validation to enforce correct types, required fields, and value ranges. Prepare error response models for invalid input."
+        },
+        {
+          "id": 2,
+          "title": "Implement /api/v1/search Endpoint for Vector Similarity Search",
+          "description": "Develop the /api/v1/search endpoint to perform vector similarity search using the user-specific LightRAG instance. Integrate the search logic to retrieve relevant chunks based on the provided query vector and configurable search parameters.",
+          "status": "pending",
+          "dependencies": [
+            1
+          ],
+          "details": "Set up the endpoint route and handler. Retrieve the user-specific LightRAG instance based on the authenticated user. Use the validated request model to extract the query vector and search parameters. Call the vector similarity search function, passing in parameters such as max chunks and similarity thresholds. Return results using the defined response model, and handle errors gracefully."
+        },
+        {
+          "id": 3,
+          "title": "Implement /api/v1/query Endpoint for Combined RAG-Powered Queries",
+          "description": "Develop the /api/v1/query endpoint to handle retrieval-augmented generation (RAG) queries, combining vector search with generative responses. Ensure the endpoint uses the user-specific LightRAG instance and supports configurable search parameters.",
+          "status": "pending",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "Set up the endpoint route and handler. Use the validated request model to extract the user query and search parameters. Perform a vector similarity search to retrieve relevant context, then pass the context and query to the RAG pipeline for answer generation. Return the generated response and supporting context using the defined response model. Implement robust error handling for both search and generation steps."
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Implement Knowledge Graph API Endpoints",
+      "description": "Create API endpoints for knowledge graph operations using LightRAG.",
+      "status": "pending",
+      "dependencies": [
+        5
+      ],
+      "priority": "medium",
+      "details": "Implement the /api/v1/graph endpoint for knowledge graph operations. Create methods for retrieving graph structure, adding relationships, and performing graph traversals. Define request and response models for graph operations. Ensure all operations use the user-specific LightRAG instance. Implement visualization-friendly response formats for graph data.",
+      "testStrategy": "Test graph endpoints with various input parameters. Verify graph operations correctly modify or retrieve data from LightRAG. Test with different user instances to ensure data isolation. Verify graph data is correctly formatted for visualization.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Design API Models and Define Endpoint Specifications",
+          "description": "Define the request and response models for all knowledge graph operations, including retrieving graph structure, adding relationships, and performing graph traversals. Specify the API contract for the /api/v1/graph endpoint, ensuring models are compatible with visualization needs and user-specific LightRAG instances.",
+          "status": "pending",
+          "dependencies": [],
+          "details": "Use Pydantic or equivalent schema definitions to create clear, versioned models for all graph operations. Include fields for nodes, edges, relationship types, traversal parameters, and user identification. Document the endpoint's supported HTTP methods (e.g., GET for retrieval, POST for adding relationships, etc.) and expected payloads. Ensure response formats are structured for easy consumption by visualization tools (e.g., nested JSON with node and edge lists)."
+        },
+        {
+          "id": 2,
+          "title": "Implement /api/v1/graph Endpoint Logic with LightRAG Integration",
+          "description": "Develop the backend logic for the /api/v1/graph endpoint, connecting each operation (retrieve, add, traverse) to the user-specific LightRAG instance. Ensure all operations use the defined models and handle user isolation.",
+          "status": "pending",
+          "dependencies": [
+            1
+          ],
+          "details": "Set up FastAPI (or the chosen framework) routes for each operation under /api/v1/graph. For each request, retrieve the correct LightRAG instance based on the authenticated user. Implement handlers for: (a) retrieving the current graph structure, (b) adding nodes/relationships, and (c) performing graph traversals. Validate all inputs against the defined models and ensure outputs match the visualization-friendly response format. Handle errors and edge cases, such as invalid graph operations or missing user context."
+        },
+        {
+          "id": 3,
+          "title": "Test, Document, and Optimize Visualization-Friendly Responses",
+          "description": "Thoroughly test all /api/v1/graph operations, document API usage, and refine response formats for compatibility with graph visualization tools.",
+          "status": "pending",
+          "dependencies": [
+            2
+          ],
+          "details": "Write unit and integration tests for all endpoint operations, covering typical and edge cases. Use tools like Swagger UI or Postman to verify API behavior and model validation. Update API documentation with example requests and responses, emphasizing the structure required for visualization (e.g., D3.js or Cytoscape.js compatibility). Optimize response payloads for performance and clarity, ensuring that node and edge data is easily consumable by frontend visualization libraries."
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Implement Data Source Configuration API",
+      "description": "Create API endpoints for configuring external data sources.",
+      "status": "pending",
+      "dependencies": [
+        6
+      ],
+      "priority": "low",
+      "details": "Implement the /api/v1/datasources endpoint for configuring external data sources. Create methods for adding, updating, and removing data source configurations. Define request and response models for data source operations. Ensure configurations are stored in the user's working directory. Implement validation for different data source types.",
+      "testStrategy": "Test data source configuration endpoints with various input parameters. Verify configurations are correctly stored in user-specific directories. Test validation of different data source types. Verify configurations persist across application restarts.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Design API Endpoints and Data Models",
+          "description": "Define the /api/v1/datasources endpoint structure and specify request and response models for adding, updating, and removing data source configurations.",
+          "status": "pending",
+          "dependencies": [],
+          "details": "Determine the HTTP methods (POST for add, PUT/PATCH for update, DELETE for remove) and the required parameters for each operation. Design JSON schemas for request and response payloads, ensuring they capture all necessary fields for different data source types. Document the endpoint contracts clearly for implementation and future reference."
+        },
+        {
+          "id": 2,
+          "title": "Implement Endpoint Logic and Configuration Storage",
+          "description": "Develop the backend logic for the /api/v1/datasources endpoint, handling add, update, and remove operations, and persist configurations in the user's working directory.",
+          "status": "pending",
+          "dependencies": [
+            1
+          ],
+          "details": "Set up route handlers in the chosen backend framework to process incoming requests according to the defined models. Implement logic to read from and write to configuration files (e.g., JSON or YAML) stored in the user's working directory. Ensure thread-safe and consistent updates to the configuration storage."
+        },
+        {
+          "id": 3,
+          "title": "Add Data Source Type Validation and Error Handling",
+          "description": "Implement validation logic for different data source types and robust error handling for all endpoint operations.",
+          "status": "pending",
+          "dependencies": [
+            2
+          ],
+          "details": "For each supported data source type, define validation rules (e.g., required fields, format checks, connection tests). Integrate validation into the endpoint handlers so that invalid configurations are rejected with clear error messages. Ensure all errors (validation, storage, unexpected) are handled gracefully and returned in a consistent response format."
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Implement Resource Management and Monitoring",
+      "description": "Add resource management, monitoring, and backup capabilities to the system.",
+      "status": "pending",
+      "dependencies": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "priority": "low",
+      "details": "Implement monitoring endpoints to track system resource usage. Add logging for critical operations and errors. Implement the backup strategy outlined in the PRD, including regular snapshots of user data directories and database backups. Create utilities for data replication across availability zones. Implement performance monitoring for LightRAG operations. Add configuration options for tuning LightRAG parameters like chunk sizes, embedding model parameters, and graph traversal depth.",
+      "testStrategy": "Test monitoring endpoints to ensure accurate resource reporting. Verify backup and restore functionality with sample data. Test performance under various load conditions. Verify logs contain appropriate information for debugging and auditing.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Implement System Monitoring and Logging",
+          "description": "Develop and deploy monitoring endpoints to track system resource usage, and add comprehensive logging for critical operations and errors.",
+          "status": "pending",
+          "dependencies": [],
+          "details": "Identify key system resources and operations to monitor (CPU, memory, disk, network, LightRAG performance metrics). Select or extend monitoring tools to expose these metrics via endpoints (e.g., REST, Prometheus). Integrate logging libraries to capture critical events and errors, ensuring logs are structured and accessible for troubleshooting. Define alerting thresholds and procedures for incident response. Validate monitoring and logging coverage through proof-of-concept testing and adjust based on feedback.[3][5]"
+        },
+        {
+          "id": 2,
+          "title": "Implement Backup and Data Replication Utilities",
+          "description": "Design and implement the backup strategy as outlined in the PRD, including regular snapshots of user data directories, database backups, and utilities for data replication across availability zones.",
+          "status": "pending",
+          "dependencies": [
+            1
+          ],
+          "details": "Review the PRD to extract backup frequency, retention, and recovery requirements. Develop automated scripts or services to perform scheduled snapshots of user data and database backups. Implement utilities to replicate backups across multiple availability zones for redundancy. Ensure backup processes are logged and monitored, and test recovery procedures to verify data integrity and restore capabilities."
+        },
+        {
+          "id": 3,
+          "title": "Add Configuration and Performance Tuning Options for LightRAG",
+          "description": "Expose configuration options for tuning LightRAG parameters (chunk sizes, embedding model parameters, graph traversal depth) and implement performance monitoring for LightRAG operations.",
+          "status": "pending",
+          "dependencies": [
+            1
+          ],
+          "details": "Extend the system configuration interface (e.g., config files, environment variables, admin UI) to allow dynamic adjustment of LightRAG parameters. Integrate performance monitoring hooks specific to LightRAG operations, capturing metrics such as query latency, throughput, and resource consumption. Ensure changes to configuration are logged and can be rolled back if needed. Provide documentation and guidelines for tuning based on observed performance metrics."
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "projectName": "EmbedIQ Backend Implementation",
+    "totalTasks": 10,
+    "sourceFile": "task-master/prd.md",
+    "generatedAt": "2023-11-09"
+  }
+}

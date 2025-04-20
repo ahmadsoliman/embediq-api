@@ -1,0 +1,31 @@
+# Task ID: 5
+# Title: Create User-Specific LightRAG Initialization
+# Status: pending
+# Dependencies: 4
+# Priority: high
+# Description: Implement functions to initialize and configure LightRAG instances for each user.
+# Details:
+Create utility functions to initialize LightRAG with user-specific working directories. Implement the get_llm_model_func() and get_embedding_func() helper functions that return properly configured model functions for LightRAG. Set up the embedding function with the required 1536 dimension and 8192 max token size as specified in the PRD. Create a dependency injection function (get_rag_for_user) that extracts the user ID from the request and returns the appropriate LightRAG instance using the RAG Instance Manager.
+
+# Test Strategy:
+Test initialization with different user IDs to ensure unique working directories are created. Verify embedding and LLM model functions are correctly configured. Test the dependency injection in a mock FastAPI endpoint to ensure it correctly retrieves user-specific RAG instances.
+
+# Subtasks:
+## 1. Implement User-Specific LightRAG Initialization Utility [pending]
+### Dependencies: None
+### Description: Create a utility function that initializes a LightRAG instance with a user-specific working directory. This function should accept a user identifier and set up the LightRAG instance to use a dedicated directory for each user, ensuring data separation and proper resource allocation.
+### Details:
+Define a function (e.g., initialize_lightrag_for_user(user_id)) that constructs a unique working directory path for each user (such as './rag_storage/{user_id}'). Use this path to initialize the LightRAG instance. Ensure that the directory is created if it does not exist. Reference the LightRAG initialization pattern from the official documentation, passing the working_dir parameter accordingly[1][2].
+
+## 2. Develop Model and Embedding Helper Functions [pending]
+### Dependencies: 5.1
+### Description: Implement the get_llm_model_func() and get_embedding_func() helper functions to return properly configured model and embedding functions for LightRAG. Ensure the embedding function is set up with a 1536-dimensional vector and supports up to 8192 tokens, as specified in the PRD.
+### Details:
+Define get_llm_model_func() to return the appropriate LLM completion function (e.g., gpt_4o_mini_complete or similar). Define get_embedding_func() to return an embedding function configured for 1536 dimensions and 8192 max token size. If using a built-in embedding function (such as openai_embed), ensure it is parameterized or wrapped to enforce these requirements[1].
+
+## 3. Implement Dependency Injection for User-Specific RAG Instances [pending]
+### Dependencies: 5.1, 5.2
+### Description: Create a dependency injection function (get_rag_for_user) that extracts the user ID from the incoming request and returns the corresponding LightRAG instance using a RAG Instance Manager. This function should ensure that each user receives a properly initialized and configured LightRAG instance.
+### Details:
+Implement get_rag_for_user(request) to extract the user ID (e.g., from request headers or session). Use a RAG Instance Manager (such as a singleton or cache) to retrieve or initialize the LightRAG instance for that user, leveraging the utility and helper functions from the previous subtasks. Ensure thread safety and efficient instance reuse where appropriate[2].
+

@@ -1,0 +1,219 @@
+# Task ID: 1
+# Title: Setup Docker Environment with PostgreSQL
+# Status: done
+# Dependencies: None
+# Priority: high
+# Description: Configure Docker Compose for development environment with the pre-configured PostgreSQL image that includes vector and AGE graph extensions.
+# Details:
+Create a docker-compose.yml file in the project root that defines two services: (1) database using the eldoc92/postgres-rag-arm64:latest image with appropriate environment variables, volumes, and port mapping; (2) backend service that builds from a Dockerfile in the backend directory with appropriate volume mounts for code and user data. Define persistent volumes for postgres_data and user_data. Set environment variables for database connection, Auth0 configuration, and data directory paths.
+
+# Test Strategy:
+Verify Docker Compose setup by running 'docker-compose up' and confirming both services start successfully. Test database connectivity from the backend container. Ensure volumes are properly mounted and persistent across container restarts.
+
+# Subtasks:
+## 1. Define Docker Compose Services and Persistent Volumes [done]
+### Dependencies: None
+### Description: Create a docker-compose.yml file in the project root that defines two services: a PostgreSQL database using the eldoc92/postgres-rag-arm64:latest image, and a backend service built from the backend directory. Set up persistent Docker volumes for postgres_data and user_data.
+### Details:
+In the docker-compose.yml file, specify the version (e.g., '3.8'). Under 'services', define the 'database' service with the correct image, port mapping (e.g., 5432:5432), and mount the 'postgres_data' volume to /var/lib/postgresql/data. Define the 'backend' service to build from the backend/Dockerfile, and mount the 'user_data' volume to the appropriate path inside the container. Under 'volumes', declare both 'postgres_data' and 'user_data' as named volumes for data persistence.[1][3]
+
+<info added on 2025-04-20T11:29:08.167Z>
+Here's additional information for your Docker Compose setup:
+
+```yaml
+# Sample docker-compose.yml structure
+version: '3.8'
+
+services:
+  database:
+    image: eldoc92/postgres-rag-arm64:latest
+    environment:
+      - POSTGRES_USER=embediq
+      - POSTGRES_PASSWORD=devpassword
+      - POSTGRES_DB=embediq
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U embediq"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    
+  backend:
+    build: 
+      context: ./backend
+    environment:
+      - DATABASE_URL=postgresql://embediq:devpassword@database:5432/embediq
+      - AUTH0_DOMAIN=${AUTH0_DOMAIN}
+      - AUTH0_API_AUDIENCE=${AUTH0_API_AUDIENCE}
+      - DATA_DIR=/data/embediq/users
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - embediq-network
+
+networks:
+  embediq-network:
+    driver: bridge
+```
+
+Consider adding:
+1. A healthcheck for the database to ensure the backend only starts when Postgres is ready
+2. Restart policies for both services
+3. A dedicated bridge network for service communication
+4. Using environment variables for sensitive information
+5. The DATA_DIR environment variable should match the mounted user_data volume path
+
+For local development, you might want to add a .env file in the project root to store AUTH0 credentials and other environment-specific variables.
+</info added on 2025-04-20T11:29:08.167Z>
+
+<info added on 2025-04-20T11:34:52.261Z>
+<info added>
+Based on the updated directory structure, here's how to adjust your Docker Compose configuration:
+
+```yaml
+# Updated build context for backend service
+services:
+  backend:
+    build: 
+      context: ./src  # Changed from ./backend to ./src
+    volumes:
+      - user_data:/data/embediq/users  # Ensure this volume mapping is present
+    # Other configuration remains the same
+```
+
+When working with the revised directory structure:
+
+1. Ensure your Dockerfile exists at `./src/Dockerfile` rather than `./backend/Dockerfile`
+2. Update any relative paths in your backend code that might reference the project root
+3. If you have any scripts that reference the backend directory, update them to use `src` instead
+4. Consider adding a `.dockerignore` file in the `src` directory to exclude unnecessary files from the build context
+
+The change from `backend` to `src` is purely structural and doesn't affect the functionality of your services, but it's important to maintain consistency across your project documentation and references.
+</info added>
+</info added on 2025-04-20T11:34:52.261Z>
+
+## 2. Configure Environment Variables for Services [done]
+### Dependencies: 1.1
+### Description: Set up required environment variables for both the database and backend services in the docker-compose.yml file. This includes PostgreSQL credentials, vector and AGE extension settings, database connection details, Auth0 configuration, and data directory paths.
+### Details:
+In the 'environment' section for the database service, define variables such as POSTGRES_USER, POSTGRES_PASSWORD, and POSTGRES_DB. If the vector and AGE extensions require additional variables or initialization scripts, include those as well. For the backend service, set environment variables for connecting to the database (host, port, user, password, db), Auth0 client and domain, and any paths needed for user data. Use Docker Compose variable substitution or .env files as appropriate for sensitive data.[1][3][4]
+
+<info added on 2025-04-20T11:35:32.534Z>
+Add the following to the details section:
+
+For better security and developer onboarding, create a `.env.example` file in the project root with all required variables:
+
+```
+# Database configuration
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_secure_password
+POSTGRES_DB=knowledge_base
+POSTGRES_PORT=5432
+
+# Vector extension settings
+VECTOR_EXTENSION_ENABLED=true
+VECTOR_DIMENSION=1536
+
+# AGE extension settings
+AGE_EXTENSION_ENABLED=true
+
+# Backend connection string (constructed from above values)
+DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+
+# Auth0 configuration
+AUTH0_DOMAIN=your-tenant.auth0.com
+AUTH0_API_AUDIENCE=https://your-api-identifier
+
+# Data storage
+DATA_DIR=/app/data
+```
+
+Developers should copy this to a `.env` file and customize values. The docker-compose.yml is already correctly configured to use variable substitution (${VAR_NAME}) which will pull values from this .env file at runtime. No additional changes to docker-compose.yml are needed as the environment variables are properly set up.
+</info added on 2025-04-20T11:35:32.534Z>
+
+## 3. Implement Backend Service Build and Integration [done]
+### Dependencies: 1.2
+### Description: Create or update the Dockerfile in the backend directory to build the backend service image. Ensure the Dockerfile supports code and user data volume mounts. Test the integration between the backend and the PostgreSQL service with the configured extensions.
+### Details:
+Write or modify the backend/Dockerfile to install all necessary dependencies and expose the correct ports. Ensure the backend service can access the mounted user_data volume and connect to the database using the environment variables defined in the previous step. After building the images with 'docker-compose up', verify that the backend can connect to the database and that the vector and AGE extensions are available and functional.
+
+<info added on 2025-04-20T11:36:55.367Z>
+For the backend Dockerfile implementation, here's additional technical information:
+
+```
+# Create the following directory structure:
+src/
+├── Dockerfile
+├── requirements.txt
+├── app/
+│   ├── __init__.py
+│   ├── main.py
+│   ├── config.py
+│   └── db/
+│       ├── __init__.py
+│       └── connection.py
+
+# requirements.txt should include:
+fastapi>=0.95.0
+uvicorn>=0.21.1
+psycopg2-binary>=2.9.6
+python-dotenv>=1.0.0
+sqlalchemy>=2.0.9
+asyncpg>=0.27.0
+pgvector>=0.1.8
+
+# In the Dockerfile, include health check configuration:
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8000/health || exit 1
+
+# In app/config.py, implement environment variable handling:
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/postgres")
+VECTOR_DIMENSION = int(os.getenv("VECTOR_DIMENSION", "1536"))
+
+# In app/db/connection.py, implement database connection with extension verification:
+from sqlalchemy import create_engine, text
+from app.config import DATABASE_URL
+
+def verify_extensions():
+    """Verify that required PostgreSQL extensions are available and enabled"""
+    engine = create_engine(DATABASE_URL)
+    with engine.connect() as conn:
+        # Check vector extension
+        vector_result = conn.execute(text("SELECT * FROM pg_extension WHERE extname = 'vector'")).fetchone()
+        # Check AGE extension
+        age_result = conn.execute(text("SELECT * FROM pg_extension WHERE extname = 'age'")).fetchone()
+        
+        if not vector_result or not age_result:
+            raise RuntimeError("Required PostgreSQL extensions are not enabled")
+        
+        return True
+```
+
+For volume mounting, ensure the Dockerfile creates and sets permissions for the data directory:
+```
+# In Dockerfile
+RUN mkdir -p /app/data && chmod 777 /app/data
+VOLUME ["/app/data"]
+```
+
+When testing the integration, use this verification script in app/main.py:
+```python
+@app.get("/health")
+async def health_check():
+    try:
+        # Verify database connection and extensions
+        from app.db.connection import verify_extensions
+        extensions_ok = verify_extensions()
+        return {"status": "healthy", "database": "connected", "extensions": extensions_ok}
+    except Exception as e:
+        return {"status": "unhealthy", "error": str(e)}, 500
+```
+</info added on 2025-04-20T11:36:55.367Z>
+

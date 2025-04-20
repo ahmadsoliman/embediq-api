@@ -1,0 +1,31 @@
+# Task ID: 8
+# Title: Implement Knowledge Graph API Endpoints
+# Status: pending
+# Dependencies: 5
+# Priority: medium
+# Description: Create API endpoints for knowledge graph operations using LightRAG.
+# Details:
+Implement the /api/v1/graph endpoint for knowledge graph operations. Create methods for retrieving graph structure, adding relationships, and performing graph traversals. Define request and response models for graph operations. Ensure all operations use the user-specific LightRAG instance. Implement visualization-friendly response formats for graph data.
+
+# Test Strategy:
+Test graph endpoints with various input parameters. Verify graph operations correctly modify or retrieve data from LightRAG. Test with different user instances to ensure data isolation. Verify graph data is correctly formatted for visualization.
+
+# Subtasks:
+## 1. Design API Models and Define Endpoint Specifications [pending]
+### Dependencies: None
+### Description: Define the request and response models for all knowledge graph operations, including retrieving graph structure, adding relationships, and performing graph traversals. Specify the API contract for the /api/v1/graph endpoint, ensuring models are compatible with visualization needs and user-specific LightRAG instances.
+### Details:
+Use Pydantic or equivalent schema definitions to create clear, versioned models for all graph operations. Include fields for nodes, edges, relationship types, traversal parameters, and user identification. Document the endpoint's supported HTTP methods (e.g., GET for retrieval, POST for adding relationships, etc.) and expected payloads. Ensure response formats are structured for easy consumption by visualization tools (e.g., nested JSON with node and edge lists).
+
+## 2. Implement /api/v1/graph Endpoint Logic with LightRAG Integration [pending]
+### Dependencies: 8.1
+### Description: Develop the backend logic for the /api/v1/graph endpoint, connecting each operation (retrieve, add, traverse) to the user-specific LightRAG instance. Ensure all operations use the defined models and handle user isolation.
+### Details:
+Set up FastAPI (or the chosen framework) routes for each operation under /api/v1/graph. For each request, retrieve the correct LightRAG instance based on the authenticated user. Implement handlers for: (a) retrieving the current graph structure, (b) adding nodes/relationships, and (c) performing graph traversals. Validate all inputs against the defined models and ensure outputs match the visualization-friendly response format. Handle errors and edge cases, such as invalid graph operations or missing user context.
+
+## 3. Test, Document, and Optimize Visualization-Friendly Responses [pending]
+### Dependencies: 8.2
+### Description: Thoroughly test all /api/v1/graph operations, document API usage, and refine response formats for compatibility with graph visualization tools.
+### Details:
+Write unit and integration tests for all endpoint operations, covering typical and edge cases. Use tools like Swagger UI or Postman to verify API behavior and model validation. Update API documentation with example requests and responses, emphasizing the structure required for visualization (e.g., D3.js or Cytoscape.js compatibility). Optimize response payloads for performance and clarity, ensuring that node and edge data is easily consumable by frontend visualization libraries.
+

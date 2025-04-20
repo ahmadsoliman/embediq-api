@@ -26,5 +26,13 @@ node_modules/
 .DS_Store
 
 # Task files
-tasks.json
-tasks/ 
+# tasks.json
+# tasks/ 
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz

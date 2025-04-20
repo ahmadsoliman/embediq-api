@@ -12,6 +12,8 @@ DATABASE_URL = os.getenv(
 # Auth0 configuration
 AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN", "dev-embediq.us.auth0.com")
 AUTH0_API_AUDIENCE = os.getenv("AUTH0_API_AUDIENCE", "https://api.embediq.dev")
+AUTH0_CLIENT_ID = os.getenv("AUTH0_CLIENT_ID", "")  # No default for security
+AUTH0_ALGORITHMS = ["RS256"]  # Auth0 uses RS256 by default
 
 # Data directory configuration
 DATA_DIR = os.getenv("DATA_DIR", "/data/embediq/users")
