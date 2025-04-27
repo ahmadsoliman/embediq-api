@@ -30,7 +30,7 @@ services:
     environment:
       - POSTGRES_USER=embediq
       - POSTGRES_PASSWORD=devpassword
-      - POSTGRES_DB=embediq
+      - POSTGRES_DATABASE=embediq
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U embediq"]
       interval: 5s
@@ -98,7 +98,7 @@ The change from `backend` to `src` is purely structural and doesn't affect the f
 ### Dependencies: 1.1
 ### Description: Set up required environment variables for both the database and backend services in the docker-compose.yml file. This includes PostgreSQL credentials, vector and AGE extension settings, database connection details, Auth0 configuration, and data directory paths.
 ### Details:
-In the 'environment' section for the database service, define variables such as POSTGRES_USER, POSTGRES_PASSWORD, and POSTGRES_DB. If the vector and AGE extensions require additional variables or initialization scripts, include those as well. For the backend service, set environment variables for connecting to the database (host, port, user, password, db), Auth0 client and domain, and any paths needed for user data. Use Docker Compose variable substitution or .env files as appropriate for sensitive data.[1][3][4]
+In the 'environment' section for the database service, define variables such as POSTGRES_USER, POSTGRES_PASSWORD, and POSTGRES_DATABASE. If the vector and AGE extensions require additional variables or initialization scripts, include those as well. For the backend service, set environment variables for connecting to the database (host, port, user, password, db), Auth0 client and domain, and any paths needed for user data. Use Docker Compose variable substitution or .env files as appropriate for sensitive data.[1][3][4]
 
 <info added on 2025-04-20T11:35:32.534Z>
 Add the following to the details section:
@@ -109,7 +109,7 @@ For better security and developer onboarding, create a `.env.example` file in th
 # Database configuration
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=your_secure_password
-POSTGRES_DB=knowledge_base
+POSTGRES_DATABASE=knowledge_base
 POSTGRES_PORT=5432
 
 # Vector extension settings
@@ -120,7 +120,7 @@ VECTOR_DIMENSION=1536
 AGE_EXTENSION_ENABLED=true
 
 # Backend connection string (constructed from above values)
-DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DATABASE}
 
 # Auth0 configuration
 AUTH0_DOMAIN=your-tenant.auth0.com

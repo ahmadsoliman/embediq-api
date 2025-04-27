@@ -4,7 +4,7 @@ services:
     environment:
       - POSTGRES_USER=embediq
       - POSTGRES_PASSWORD=devpassword
-      - POSTGRES_DB=embediq
+      - POSTGRES_DATABASE=embediq
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U embediq']
       interval: 5s

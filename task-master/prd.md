@@ -114,7 +114,7 @@ database:
   environment:
     - POSTGRES_USER=embediq
     - POSTGRES_PASSWORD=devpassword
-    - POSTGRES_DB=embediq
+    - POSTGRES_DATABASE=embediq
   volumes:
     - postgres_data:/var/lib/postgresql/data
   ports:
@@ -136,7 +136,7 @@ services:
     environment:
       - POSTGRES_USER=embediq
       - POSTGRES_PASSWORD=devpassword
-      - POSTGRES_DB=embediq
+      - POSTGRES_DATABASE=embediq
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:

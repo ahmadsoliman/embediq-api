@@ -30,6 +30,7 @@ node_modules/
 # tasks/ 
 
 # Python
+venv/
 __pycache__/
 *.pyc
 *.pyo
