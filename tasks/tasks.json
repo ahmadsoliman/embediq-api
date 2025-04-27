@@ -298,7 +298,7 @@
       "id": 8,
       "title": "Implement Knowledge Graph API Endpoints",
       "description": "Create API endpoints for knowledge graph operations using LightRAG.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         5
       ],
@@ -308,31 +308,60 @@
       "subtasks": [
         {
           "id": 1,
-          "title": "Design API Models and Define Endpoint Specifications",
-          "description": "Define the request and response models for all knowledge graph operations, including retrieving graph structure, adding relationships, and performing graph traversals. Specify the API contract for the /api/v1/graph endpoint, ensuring models are compatible with visualization needs and user-specific LightRAG instances.",
-          "status": "pending",
+          "title": "Define Knowledge Graph API Models and Schemas",
+          "description": "Create Pydantic models for all knowledge graph entities, relationships, and API request/response schemas to ensure proper validation and serialization.",
           "dependencies": [],
-          "details": "Use Pydantic or equivalent schema definitions to create clear, versioned models for all graph operations. Include fields for nodes, edges, relationship types, traversal parameters, and user identification. Document the endpoint's supported HTTP methods (e.g., GET for retrieval, POST for adding relationships, etc.) and expected payloads. Ensure response formats are structured for easy consumption by visualization tools (e.g., nested JSON with node and edge lists)."
+          "details": "Implementation details:\n1. Create base models for nodes, edges, and properties using Pydantic\n2. Define request models for operations (create, update, search, traverse)\n3. Define response models with visualization-friendly formats (JSON-LD compatible)\n4. Implement field selection capability in response models\n5. Add validation rules to ensure data integrity\n6. Create documentation strings for OpenAPI/Swagger\n\nTesting approach:\n- Unit test each model with valid and invalid data\n- Verify serialization/deserialization works correctly\n- Test field selection functionality\n\nExample code:\n```python\nfrom pydantic import BaseModel, Field\nfrom typing import Dict, List, Optional, Any\n\nclass GraphNode(BaseModel):\n    id: str\n    label: str\n    properties: Dict[str, Any] = Field(default_factory=dict)\n\nclass GraphEdge(BaseModel):\n    source: str\n    target: str\n    type: str\n    properties: Dict[str, Any] = Field(default_factory=dict)\n\nclass GraphResponse(BaseModel):\n    nodes: List[GraphNode]\n    edges: List[GraphEdge]\n    \n    class Config:\n        schema_extra = {\n            \"example\": {\n                \"nodes\": [{\"id\": \"1\", \"label\": \"Person\", \"properties\": {\"name\": \"John\"}}],\n                \"edges\": [{\"source\": \"1\", \"target\": \"2\", \"type\": \"KNOWS\", \"properties\": {}}]\n            }\n        }\n```",
+          "status": "done",
+          "parentTaskId": 8
         },
         {
           "id": 2,
-          "title": "Implement /api/v1/graph Endpoint Logic with LightRAG Integration",
-          "description": "Develop the backend logic for the /api/v1/graph endpoint, connecting each operation (retrieve, add, traverse) to the user-specific LightRAG instance. Ensure all operations use the defined models and handle user isolation.",
-          "status": "pending",
+          "title": "Implement Graph Structure Retrieval Endpoints",
+          "description": "Create API endpoints for retrieving knowledge graph structure, including nodes, edges, and subgraphs with filtering and pagination support.",
           "dependencies": [
             1
           ],
-          "details": "Set up FastAPI (or the chosen framework) routes for each operation under /api/v1/graph. For each request, retrieve the correct LightRAG instance based on the authenticated user. Implement handlers for: (a) retrieving the current graph structure, (b) adding nodes/relationships, and (c) performing graph traversals. Validate all inputs against the defined models and ensure outputs match the visualization-friendly response format. Handle errors and edge cases, such as invalid graph operations or missing user context."
+          "details": "Implementation details:\n1. Create GET `/api/v1/graph` endpoint to retrieve the full graph structure\n2. Implement GET `/api/v1/graph/nodes` endpoint with filtering by label and properties\n3. Implement GET `/api/v1/graph/edges` endpoint with filtering by type\n4. Add pagination support using limit/offset query parameters\n5. Implement field selection via query parameters\n6. Ensure all endpoints use the user-specific LightRAG instance\n\nTesting approach:\n- Test with various filter combinations\n- Verify pagination works correctly\n- Test with large datasets to ensure performance\n- Verify field selection reduces response size appropriately\n\nExample code:\n```python\nfrom fastapi import FastAPI, Depends, Query, HTTPException\nfrom typing import List, Optional\nfrom .models import GraphNode, GraphEdge, GraphResponse\nfrom .dependencies import get_user_lightrag\n\napp = FastAPI()\n\n@app.get(\"/api/v1/graph\", response_model=GraphResponse)\ndef get_graph(\n    limit: int = Query(10, ge=1, le=100),\n    offset: int = Query(0, ge=0),\n    fields: Optional[str] = None,\n    lightrag = Depends(get_user_lightrag)\n):\n    # Get graph data from user's LightRAG instance\n    nodes, edges = lightrag.get_graph(limit=limit, offset=offset)\n    \n    # Apply field selection if specified\n    if fields:\n        field_list = fields.split(\",\")\n        # Filter fields logic here\n    \n    return GraphResponse(nodes=nodes, edges=edges)\n```",
+          "status": "done",
+          "parentTaskId": 8
         },
         {
           "id": 3,
-          "title": "Test, Document, and Optimize Visualization-Friendly Responses",
-          "description": "Thoroughly test all /api/v1/graph operations, document API usage, and refine response formats for compatibility with graph visualization tools.",
-          "status": "pending",
+          "title": "Implement Graph Modification Endpoints",
+          "description": "Create API endpoints for adding, updating, and deleting nodes and relationships in the knowledge graph.",
           "dependencies": [
+            1
+          ],
+          "details": "Implementation details:\n1. Implement POST `/api/v1/graph/nodes` to create new nodes\n2. Implement POST `/api/v1/graph/edges` to create new relationships\n3. Implement PUT/PATCH endpoints for updating nodes and edges\n4. Implement DELETE endpoints for removing nodes and edges\n5. Add transaction support to ensure data consistency\n6. Return appropriate status codes (201 for creation, 204 for deletion)\n\nTesting approach:\n- Test CRUD operations individually\n- Test error handling for invalid inputs\n- Test transaction rollback on failure\n- Verify proper status codes are returned\n\nExample code:\n```python\n@app.post(\"/api/v1/graph/nodes\", response_model=GraphNode, status_code=201)\ndef create_node(\n    node: GraphNode,\n    lightrag = Depends(get_user_lightrag)\n):\n    try:\n        created_node = lightrag.create_node(node.dict())\n        return created_node\n    except Exception as e:\n        raise HTTPException(status_code=400, detail=str(e))\n\n@app.delete(\"/api/v1/graph/nodes/{node_id}\", status_code=204)\ndef delete_node(\n    node_id: str,\n    lightrag = Depends(get_user_lightrag)\n):\n    try:\n        lightrag.delete_node(node_id)\n        return None\n    except KeyError:\n        raise HTTPException(status_code=404, detail=\"Node not found\")\n    except Exception as e:\n        raise HTTPException(status_code=400, detail=str(e))\n```",
+          "status": "done",
+          "parentTaskId": 8
+        },
+        {
+          "id": 4,
+          "title": "Implement Graph Traversal and Search Endpoints",
+          "description": "Create API endpoints for traversing the graph, finding paths between nodes, and performing semantic searches within the knowledge graph.",
+          "dependencies": [
+            1,
             2
           ],
-          "details": "Write unit and integration tests for all endpoint operations, covering typical and edge cases. Use tools like Swagger UI or Postman to verify API behavior and model validation. Update API documentation with example requests and responses, emphasizing the structure required for visualization (e.g., D3.js or Cytoscape.js compatibility). Optimize response payloads for performance and clarity, ensuring that node and edge data is easily consumable by frontend visualization libraries."
+          "details": "Implementation details:\n1. Implement GET `/api/v1/graph/traverse` endpoint for graph traversal operations\n2. Create GET `/api/v1/graph/paths` endpoint to find paths between nodes\n3. Implement GET `/api/v1/graph/search` for semantic search within the graph\n4. Add query parameters for controlling traversal depth and direction\n5. Implement filtering by node types and edge types\n6. Ensure efficient traversal algorithms are used\n\nTesting approach:\n- Test traversal with different depths and directions\n- Test path finding between various node pairs\n- Benchmark performance with large graphs\n- Test semantic search with various queries\n\nExample code:\n```python\n@app.get(\"/api/v1/graph/traverse\", response_model=GraphResponse)\ndef traverse_graph(\n    start_node: str,\n    direction: str = Query(\"outbound\", enum=[\"outbound\", \"inbound\", \"any\"]),\n    max_depth: int = Query(2, ge=1, le=5),\n    edge_types: Optional[str] = None,\n    lightrag = Depends(get_user_lightrag)\n):\n    edge_type_list = edge_types.split(\",\") if edge_types else None\n    \n    subgraph = lightrag.traverse(\n        start_node=start_node,\n        direction=direction,\n        max_depth=max_depth,\n        edge_types=edge_type_list\n    )\n    \n    return GraphResponse(nodes=subgraph[\"nodes\"], edges=subgraph[\"edges\"])\n\n@app.get(\"/api/v1/graph/search\", response_model=GraphResponse)\ndef search_graph(\n    query: str,\n    limit: int = Query(10, ge=1, le=100),\n    lightrag = Depends(get_user_lightrag)\n):\n    results = lightrag.search(query=query, limit=limit)\n    return GraphResponse(nodes=results[\"nodes\"], edges=results[\"edges\"])\n```",
+          "status": "done",
+          "parentTaskId": 8
+        },
+        {
+          "id": 5,
+          "title": "Implement Visualization-Friendly Response Formats and Documentation",
+          "description": "Enhance API responses with visualization-friendly formats and create comprehensive API documentation using OpenAPI/Swagger.",
+          "dependencies": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "details": "Implementation details:\n1. Implement JSON-LD compatible response format for interoperability\n2. Add specialized visualization endpoints that return data in formats compatible with common graph visualization libraries (D3.js, Cytoscape.js)\n3. Create custom response serializers for different visualization formats\n4. Implement content negotiation to support multiple response formats\n5. Create comprehensive OpenAPI documentation with examples\n6. Add rate limiting and caching headers for performance\n\nTesting approach:\n- Verify response formats work with visualization libraries\n- Test content negotiation with different Accept headers\n- Validate JSON-LD responses against schema\n- Test documentation endpoints return valid OpenAPI specs\n\nExample code:\n```python\nfrom fastapi import Response, Header\nfrom typing import Optional\n\n@app.get(\"/api/v1/graph/visualize\", response_model=None)\ndef get_visualization_data(\n    format: str = Query(\"d3\", enum=[\"d3\", \"cytoscape\", \"jsonld\"]),\n    lightrag = Depends(get_user_lightrag),\n    accept: Optional[str] = Header(None)\n):\n    # Get graph data\n    graph_data = lightrag.get_graph()\n    \n    # Determine format based on Accept header or query param\n    if accept and \"application/ld+json\" in accept:\n        format = \"jsonld\"\n    \n    # Format data according to requested visualization format\n    if format == \"d3\":\n        response_data = format_for_d3(graph_data)\n        return response_data\n    elif format == \"cytoscape\":\n        response_data = format_for_cytoscape(graph_data)\n        return response_data\n    elif format == \"jsonld\":\n        response_data = format_for_jsonld(graph_data)\n        return Response(\n            content=response_data,\n            media_type=\"application/ld+json\"\n        )\n\ndef format_for_d3(graph_data):\n    # Transform to D3.js format\n    return {\n        \"nodes\": [{\"id\": n.id, \"label\": n.label, **n.properties} for n in graph_data[\"nodes\"]],\n        \"links\": [{\"source\": e.source, \"target\": e.target, \"type\": e.type} for e in graph_data[\"edges\"]]\n    }\n```",
+          "status": "done",
+          "parentTaskId": 8
         }
       ]
     },

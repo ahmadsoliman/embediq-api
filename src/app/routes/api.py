@@ -6,6 +6,7 @@ import logging
 # Import routers
 from app.routes.documents import documents_router
 from app.routes.search import search_router
+from app.routes.graph import graph_router
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,10 @@ logger.info(f"Search router has {len(search_router.routes)} routes")
 for route in search_router.routes:
     logger.info(f"Route: {route.path}, methods: {route.methods}")
 
+logger.info(f"Graph router has {len(graph_router.routes)} routes")
+for route in graph_router.routes:
+    logger.info(f"Route: {route.path}, methods: {route.methods}")
+
 # Create API router
 api_router = APIRouter(prefix="/api/v1")
 
@@ -27,6 +32,8 @@ logger.info("Including documents_router in api_router")
 api_router.include_router(documents_router, prefix="/documents")
 logger.info("Including search_router in api_router")
 api_router.include_router(search_router)
+logger.info("Including graph_router in api_router")
+api_router.include_router(graph_router, prefix="/graph")
 logger.info(f"API router now has {len(api_router.routes)} routes")
 
 
