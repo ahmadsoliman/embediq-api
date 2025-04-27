@@ -1,0 +1,3 @@
+"""
+Extensions package for EmbedIQ.
+"""

@@ -3,6 +3,7 @@ import logging
 from app.config import DATABASE_URL, DATA_DIR
 import os
 from app.routes.api import api_router
+from app.services.datasource_registry import datasource_registry
 
 # Configure logging
 logging.basicConfig(

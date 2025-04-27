@@ -369,7 +369,7 @@
       "id": 9,
       "title": "Implement Data Source Configuration API",
       "description": "Create API endpoints for configuring external data sources.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         6
       ],
@@ -379,31 +379,60 @@
       "subtasks": [
         {
           "id": 1,
-          "title": "Design API Endpoints and Data Models",
-          "description": "Define the /api/v1/datasources endpoint structure and specify request and response models for adding, updating, and removing data source configurations.",
-          "status": "pending",
+          "title": "Define Data Source Configuration Models",
+          "description": "Create Pydantic models for data source configurations that support different types of data sources and include proper validation. These models will be used for request/response handling and validation throughout the API.",
           "dependencies": [],
-          "details": "Determine the HTTP methods (POST for add, PUT/PATCH for update, DELETE for remove) and the required parameters for each operation. Design JSON schemas for request and response payloads, ensuring they capture all necessary fields for different data source types. Document the endpoint contracts clearly for implementation and future reference."
+          "details": "1. Create a base DataSourceConfig Pydantic model with common fields:\n   - id (UUID, auto-generated)\n   - name (required, string)\n   - type (required, string - e.g., 'postgres', 'mysql', 'csv', 'api')\n   - description (optional, string)\n   - created_at and updated_at timestamps\n2. Create specific models for each data source type that inherit from the base model:\n   - DatabaseDataSource (for SQL databases with connection string, username, password fields)\n   - FileDataSource (for CSV, JSON files with path, format fields)\n   - APIDataSource (for REST APIs with url, auth_type, headers fields)\n3. Implement validation logic for each model type (e.g., validate connection strings, file paths)\n4. Ensure sensitive fields like passwords use SecretStr type for security\n5. Add helper methods for serialization/deserialization\n6. Write unit tests for model validation with various input scenarios",
+          "status": "done",
+          "parentTaskId": 9
         },
         {
           "id": 2,
-          "title": "Implement Endpoint Logic and Configuration Storage",
-          "description": "Develop the backend logic for the /api/v1/datasources endpoint, handling add, update, and remove operations, and persist configurations in the user's working directory.",
-          "status": "pending",
+          "title": "Implement Configuration Storage Service",
+          "description": "Create a service layer to handle the storage and retrieval of data source configurations in the user's working directory. This service will handle persistence, encryption of sensitive data, and file operations.",
           "dependencies": [
             1
           ],
-          "details": "Set up route handlers in the chosen backend framework to process incoming requests according to the defined models. Implement logic to read from and write to configuration files (e.g., JSON or YAML) stored in the user's working directory. Ensure thread-safe and consistent updates to the configuration storage."
+          "details": "1. Create a ConfigurationStorageService class with methods for CRUD operations:\n   - save_config(config: DataSourceConfig) -> DataSourceConfig\n   - get_config(config_id: str) -> DataSourceConfig\n   - list_configs() -> List[DataSourceConfig]\n   - update_config(config_id: str, config: DataSourceConfig) -> DataSourceConfig\n   - delete_config(config_id: str) -> None\n2. Implement file-based storage in the user's working directory:\n   - Use a subdirectory like '.datasources' in the user's working directory\n   - Store each configuration as a separate JSON file named by its ID\n   - Use the 'cryptography' library to encrypt sensitive fields before storage\n3. Handle file locking for concurrent access\n4. Implement error handling for file operations (permissions, disk space)\n5. Add logging for operations (excluding sensitive data)\n6. Write unit tests with mocked file system\n7. Ensure backward compatibility for configuration format changes",
+          "status": "done",
+          "parentTaskId": 9
         },
         {
           "id": 3,
-          "title": "Add Data Source Type Validation and Error Handling",
-          "description": "Implement validation logic for different data source types and robust error handling for all endpoint operations.",
-          "status": "pending",
+          "title": "Create Data Source Validation Service",
+          "description": "Implement a service to validate data source configurations by testing connections and verifying access permissions. This ensures that stored configurations are valid and usable.",
           "dependencies": [
-            2
+            1
           ],
-          "details": "For each supported data source type, define validation rules (e.g., required fields, format checks, connection tests). Integrate validation into the endpoint handlers so that invalid configurations are rejected with clear error messages. Ensure all errors (validation, storage, unexpected) are handled gracefully and returned in a consistent response format."
+          "details": "1. Create a DataSourceValidationService with methods for different data source types:\n   - validate_database_connection(config: DatabaseDataSource) -> ValidationResult\n   - validate_file_access(config: FileDataSource) -> ValidationResult\n   - validate_api_endpoint(config: APIDataSource) -> ValidationResult\n2. Implement connection testing logic for each data source type:\n   - For databases: Establish connection, run simple query, check permissions\n   - For files: Check file existence, read permissions, parse header\n   - For APIs: Send test request, verify response format\n3. Create a ValidationResult model with fields for success status, error messages, and warnings\n4. Implement timeout handling to prevent long-running validation attempts\n5. Add detailed error messages for common configuration issues\n6. Create mock data sources for testing without actual external dependencies\n7. Write integration tests for each validation method with test data sources",
+          "status": "done",
+          "parentTaskId": 9
+        },
+        {
+          "id": 4,
+          "title": "Implement Data Source Configuration API Endpoints",
+          "description": "Create the RESTful API endpoints for managing data source configurations, following best practices for API design, error handling, and security.",
+          "dependencies": [
+            1,
+            2,
+            3
+          ],
+          "details": "1. Implement the following endpoints using FastAPI:\n   - POST /api/v1/datasources - Create new data source configuration\n   - GET /api/v1/datasources - List all data source configurations\n   - GET /api/v1/datasources/{id} - Get specific data source configuration\n   - PUT /api/v1/datasources/{id} - Update data source configuration\n   - DELETE /api/v1/datasources/{id} - Delete data source configuration\n   - POST /api/v1/datasources/{id}/validate - Validate a data source configuration\n2. Add proper request/response models using the Pydantic models from subtask 1\n3. Implement filtering, sorting, and pagination for the list endpoint\n4. Add proper error handling with appropriate HTTP status codes\n5. Implement authentication and authorization middleware\n6. Add rate limiting to prevent abuse\n7. Ensure sensitive data is never returned in responses (mask credentials)\n8. Document API endpoints using OpenAPI/Swagger annotations\n9. Write integration tests for each endpoint",
+          "status": "done",
+          "parentTaskId": 9
+        },
+        {
+          "id": 5,
+          "title": "Implement Data Source Type Registry and Extension System",
+          "description": "Create a registry system that allows for adding new data source types and their specific validation logic. This makes the system extensible for future data source types.",
+          "dependencies": [
+            1,
+            3,
+            4
+          ],
+          "details": "1. Create a DataSourceTypeRegistry class to manage available data source types:\n   - register_type(type_name: str, model_class, validator_class) -> None\n   - get_type(type_name: str) -> Tuple[model_class, validator_class]\n   - list_types() -> List[str]\n2. Implement a plugin system to load data source type definitions from external modules\n3. Create an extension interface with required methods for new data source types:\n   - get_type_name() -> str\n   - get_model_class() -> Type[DataSourceConfig]\n   - get_validator_class() -> Type[Validator]\n   - get_connection_parameters() -> List[Dict]\n4. Update API endpoints to use the registry for validation and model selection\n5. Add an endpoint to discover available data source types:\n   - GET /api/v1/datasources/types - List all supported data source types and their parameters\n6. Create documentation for extending the system with new data source types\n7. Implement at least one additional data source type as an example extension\n8. Write tests for the registry and extension loading system",
+          "status": "done",
+          "parentTaskId": 9
         }
       ]
     },
