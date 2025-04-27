@@ -1,6 +1,6 @@
 # Task ID: 7
 # Title: Implement Query and Search API Endpoints
-# Status: pending
+# Status: done
 # Dependencies: 5
 # Priority: medium
 # Description: Create API endpoints for vector similarity search and RAG-powered queries.
@@ -11,19 +11,19 @@ Implement the /api/v1/search endpoint for vector similarity search using LightRA
 Test search and query endpoints with various input parameters. Verify results are correctly returned from LightRAG. Test with different user instances to ensure data isolation. Measure response times for different query complexities. Test error handling for invalid queries.
 
 # Subtasks:
-## 1. Define Request and Response Models with Parameter Validation [pending]
+## 1. Define Request and Response Models with Parameter Validation [done]
 ### Dependencies: None
 ### Description: Design and implement the data models for both /api/v1/search and /api/v1/query endpoints, including all required and optional parameters. Add validation logic for input parameters such as query vectors, maximum chunks, and similarity thresholds. Ensure models are structured for clear API documentation and future extensibility.
 ### Details:
 Use a schema validation library (e.g., Pydantic for Python or equivalent) to define request and response models. Specify fields for query vectors, search parameters (e.g., similarity function, max chunks, thresholds), and user identification. Implement validation to enforce correct types, required fields, and value ranges. Prepare error response models for invalid input.
 
-## 2. Implement /api/v1/search Endpoint for Vector Similarity Search [pending]
+## 2. Implement /api/v1/search Endpoint for Vector Similarity Search [done]
 ### Dependencies: 7.1
 ### Description: Develop the /api/v1/search endpoint to perform vector similarity search using the user-specific LightRAG instance. Integrate the search logic to retrieve relevant chunks based on the provided query vector and configurable search parameters.
 ### Details:
 Set up the endpoint route and handler. Retrieve the user-specific LightRAG instance based on the authenticated user. Use the validated request model to extract the query vector and search parameters. Call the vector similarity search function, passing in parameters such as max chunks and similarity thresholds. Return results using the defined response model, and handle errors gracefully.
 
-## 3. Implement /api/v1/query Endpoint for Combined RAG-Powered Queries [pending]
+## 3. Implement /api/v1/query Endpoint for Combined RAG-Powered Queries [done]
 ### Dependencies: 7.1, 7.2
 ### Description: Develop the /api/v1/query endpoint to handle retrieval-augmented generation (RAG) queries, combining vector search with generative responses. Ensure the endpoint uses the user-specific LightRAG instance and supports configurable search parameters.
 ### Details:

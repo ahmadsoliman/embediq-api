@@ -255,7 +255,7 @@
       "id": 7,
       "title": "Implement Query and Search API Endpoints",
       "description": "Create API endpoints for vector similarity search and RAG-powered queries.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         5
       ],
@@ -267,7 +267,7 @@
           "id": 1,
           "title": "Define Request and Response Models with Parameter Validation",
           "description": "Design and implement the data models for both /api/v1/search and /api/v1/query endpoints, including all required and optional parameters. Add validation logic for input parameters such as query vectors, maximum chunks, and similarity thresholds. Ensure models are structured for clear API documentation and future extensibility.",
-          "status": "pending",
+          "status": "done",
           "dependencies": [],
           "details": "Use a schema validation library (e.g., Pydantic for Python or equivalent) to define request and response models. Specify fields for query vectors, search parameters (e.g., similarity function, max chunks, thresholds), and user identification. Implement validation to enforce correct types, required fields, and value ranges. Prepare error response models for invalid input."
         },
@@ -275,7 +275,7 @@
           "id": 2,
           "title": "Implement /api/v1/search Endpoint for Vector Similarity Search",
           "description": "Develop the /api/v1/search endpoint to perform vector similarity search using the user-specific LightRAG instance. Integrate the search logic to retrieve relevant chunks based on the provided query vector and configurable search parameters.",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1
           ],
@@ -285,7 +285,7 @@
           "id": 3,
           "title": "Implement /api/v1/query Endpoint for Combined RAG-Powered Queries",
           "description": "Develop the /api/v1/query endpoint to handle retrieval-augmented generation (RAG) queries, combining vector search with generative responses. Ensure the endpoint uses the user-specific LightRAG instance and supports configurable search parameters.",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1,
             2

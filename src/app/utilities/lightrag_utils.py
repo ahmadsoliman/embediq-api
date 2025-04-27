@@ -25,8 +25,9 @@ except ImportError:
 
     # Create mock classes and functions for testing without LightRAG
     class QueryParam:
-        def __init__(self, mode="naive", **kwargs):
+        def __init__(self, mode="naive", top_k=5, **kwargs):
             self.mode = mode
+            self.top_k = top_k
             self.kwargs = kwargs
 
     class LightRAG:
@@ -52,13 +53,39 @@ except ImportError:
             # Accept any keyword arguments (chunk_size, chunk_overlap, etc.)
             logger.info(f"Mock: Asynchronously inserted text of length {len(text)}")
 
+        def search(self, query_text, param=None):
+            logger.info(f"Mock: Searched with text: {query_text}")
+            return [
+                {
+                    "text": f"Mock search result for: {query_text}",
+                    "similarity": 0.85,
+                    "document_id": "mock-doc-123",
+                    "document_title": "Mock Document",
+                    "chunk_id": "mock-chunk-123",
+                    "metadata": {"page": 1},
+                }
+            ]
+
+        async def asearch(self, query_text, param=None):
+            logger.info(f"Mock: Asynchronously searched with text: {query_text}")
+            return self.search(query_text, param)
+
         def query(self, query_text, param=None):
             logger.info(f"Mock: Queried with text: {query_text}")
-            return f"Mock response for: {query_text}"
+            result = type(
+                "obj",
+                (object,),
+                {
+                    "response": f"Mock response for: {query_text}",
+                    "confidence": 0.92,
+                    "chunks": self.search(query_text, param),
+                },
+            )
+            return result
 
         async def aquery(self, query_text, param=None):
             logger.info(f"Mock: Asynchronously queried with text: {query_text}")
-            return f"Mock async response for: {query_text}"
+            return self.query(query_text, param)
 
     class EmbeddingFunc:
         def __init__(self, embedding_dim=None, max_token_size=None, func=None):
@@ -186,6 +213,39 @@ async def ingest_document(
         logger.info(f"Successfully ingested document of length {len(content)}")
     except Exception as e:
         logger.error(f"Error ingesting document: {e}")
+        raise
+
+
+async def search_lightrag(
+    rag: LightRAG, query: str, mode: str = "hybrid", max_chunks: int = 5
+) -> list:
+    """
+    Perform vector similarity search with a LightRAG instance
+
+    Args:
+        rag: The LightRAG instance
+        query: The search query text
+        mode: The search mode (naive, local, global, hybrid, mix)
+        max_chunks: Maximum number of chunks to retrieve
+
+    Returns:
+        List of search results
+    """
+    try:
+        param = QueryParam(mode=mode, top_k=max_chunks)
+
+        if hasattr(rag, "asearch"):
+            # Use async search if available
+            results = await rag.asearch(query, param=param)
+        else:
+            # Fall back to sync search
+            # Note: In a real async context, this blocks the event loop
+            results = rag.search(query, param=param)
+
+        logger.info(f"Search successful: {query}, found {len(results)} results")
+        return results
+    except Exception as e:
+        logger.error(f"Error searching with LightRAG: {e}")
         raise
 
 

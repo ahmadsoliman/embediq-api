@@ -5,6 +5,7 @@ import logging
 
 # Import routers
 from app.routes.documents import documents_router
+from app.routes.search import search_router
 
 logger = logging.getLogger(__name__)
 
@@ -14,12 +15,18 @@ logger.info(f"Documents router has {len(documents_router.routes)} routes")
 for route in documents_router.routes:
     logger.info(f"Route: {route.path}, methods: {route.methods}")
 
+logger.info(f"Search router has {len(search_router.routes)} routes")
+for route in search_router.routes:
+    logger.info(f"Route: {route.path}, methods: {route.methods}")
+
 # Create API router
 api_router = APIRouter(prefix="/api/v1")
 
 # Include other routers
 logger.info("Including documents_router in api_router")
 api_router.include_router(documents_router, prefix="/documents")
+logger.info("Including search_router in api_router")
+api_router.include_router(search_router)
 logger.info(f"API router now has {len(api_router.routes)} routes")
 
 
@@ -83,17 +90,3 @@ async def get_user_profile(request: Request, user_id: str = Depends(validate_tok
 
     logger.info(f"Profile retrieved for user {user_id}")
     return {"profile": profile}
-
-
-# Placeholder for search endpoint
-@api_router.get("/search", tags=["search"])
-async def search(query: str, user_id: str = Depends(validate_token)):
-    """Perform vector search - placeholder for now"""
-    return {"query": query, "results": []}
-
-
-# Placeholder for query endpoint
-@api_router.get("/query", tags=["query"])
-async def query(query: str, user_id: str = Depends(validate_token)):
-    """Perform RAG query - placeholder for now"""
-    return {"query": query, "answer": "This is a placeholder answer."}
