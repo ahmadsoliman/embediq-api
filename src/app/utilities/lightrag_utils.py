@@ -147,7 +147,9 @@ async def initialize_lightrag_instance(
     return rag
 
 
-async def ingest_document(rag: LightRAG, content: str, documentId: str = None) -> None:
+async def ingest_document(
+    rag: LightRAG, content: str, documentId: str, file_path: str = None
+) -> None:
     """
     Ingest a document into LightRAG
 
@@ -157,18 +159,28 @@ async def ingest_document(rag: LightRAG, content: str, documentId: str = None) -
         documentId: The document ID
     """
     try:
+        if not documentId:
+            raise ValueError("documentId is required")
+
+        if not file_path:
+            file_path = documentId
+
         if hasattr(rag, "ainsert"):
             print("Using async insert")
             # Use async insert if available
             await rag.ainsert(
-                content  # , ids=[str(documentId)]  , file_paths=[str(documentId)
+                content,
+                ids=[str(documentId)],
+                file_paths=[str(file_path)],
             )
         else:
             print("Using sync insert")
             # Fall back to sync insert
             # Note: In a real async context, this blocks the event loop
             rag.insert(
-                content  # , ids=[str(documentId)]  , file_paths=[str(documentId)]
+                content,
+                ids=[str(documentId)],
+                file_paths=[str(file_path)],
             )
         print("Ingested document")
         logger.info(f"Successfully ingested document of length {len(content)}")

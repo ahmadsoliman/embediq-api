@@ -170,7 +170,7 @@
       "id": 5,
       "title": "Create User-Specific LightRAG Initialization",
       "description": "Implement functions to initialize and configure LightRAG instances for each user.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         4
       ],
@@ -182,7 +182,7 @@
           "id": 1,
           "title": "Implement User-Specific LightRAG Initialization Utility",
           "description": "Create a utility function that initializes a LightRAG instance with a user-specific working directory. This function should accept a user identifier and set up the LightRAG instance to use a dedicated directory for each user, ensuring data separation and proper resource allocation.",
-          "status": "pending",
+          "status": "done",
           "dependencies": [],
           "details": "Define a function (e.g., initialize_lightrag_for_user(user_id)) that constructs a unique working directory path for each user (such as './rag_storage/{user_id}'). Use this path to initialize the LightRAG instance. Ensure that the directory is created if it does not exist. Reference the LightRAG initialization pattern from the official documentation, passing the working_dir parameter accordingly[1][2]."
         },
@@ -190,7 +190,7 @@
           "id": 2,
           "title": "Develop Model and Embedding Helper Functions",
           "description": "Implement the get_llm_model_func() and get_embedding_func() helper functions to return properly configured model and embedding functions for LightRAG. Ensure the embedding function is set up with a 1536-dimensional vector and supports up to 8192 tokens, as specified in the PRD.",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1
           ],
@@ -200,7 +200,7 @@
           "id": 3,
           "title": "Implement Dependency Injection for User-Specific RAG Instances",
           "description": "Create a dependency injection function (get_rag_for_user) that extracts the user ID from the incoming request and returns the corresponding LightRAG instance using a RAG Instance Manager. This function should ensure that each user receives a properly initialized and configured LightRAG instance.",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1,
             2
@@ -213,7 +213,7 @@
       "id": 6,
       "title": "Implement Document Management API Endpoints",
       "description": "Create API endpoints for document upload and management using LightRAG.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         5
       ],
@@ -225,7 +225,7 @@
           "id": 1,
           "title": "Implement Document Upload Endpoint with Temporary File Storage",
           "description": "Create the /api/v1/documents POST endpoint to handle document uploads, storing files temporarily before processing with LightRAG.",
-          "status": "pending",
+          "status": "done",
           "dependencies": [],
           "details": "Develop the POST /api/v1/documents endpoint to accept file uploads. Implement a temporary file storage mechanism—such as saving files to a temp directory or using an in-memory store—ensuring files are accessible for subsequent processing. Integrate error handling for upload failures and ensure temporary files are cleaned up after processing or on error. Use dependency injection to access the user-specific LightRAG instance for later processing steps."
         },
@@ -233,7 +233,7 @@
           "id": 2,
           "title": "Integrate LightRAG Processing and Persistent Document Storage",
           "description": "Process uploaded documents using the user-specific LightRAG instance and store processed documents persistently.",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1
           ],
@@ -243,7 +243,7 @@
           "id": 3,
           "title": "Implement Document Listing, Retrieval, and Deletion Endpoints",
           "description": "Create endpoints for listing all documents, retrieving a specific document, and deleting documents, ensuring all operations use the user-specific LightRAG instance.",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             2
           ],

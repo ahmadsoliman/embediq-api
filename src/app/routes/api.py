@@ -3,10 +3,24 @@ from app.middleware.auth import validate_token
 from typing import Dict, Any, Optional
 import logging
 
+# Import routers
+from app.routes.documents import documents_router
+
 logger = logging.getLogger(__name__)
+
+# Add debug logging
+logger.info("API router module loading")
+logger.info(f"Documents router has {len(documents_router.routes)} routes")
+for route in documents_router.routes:
+    logger.info(f"Route: {route.path}, methods: {route.methods}")
 
 # Create API router
 api_router = APIRouter(prefix="/api/v1")
+
+# Include other routers
+logger.info("Including documents_router in api_router")
+api_router.include_router(documents_router, prefix="/documents")
+logger.info(f"API router now has {len(api_router.routes)} routes")
 
 
 # Auth endpoints
@@ -69,13 +83,6 @@ async def get_user_profile(request: Request, user_id: str = Depends(validate_tok
 
     logger.info(f"Profile retrieved for user {user_id}")
     return {"profile": profile}
-
-
-# Placeholder for documents endpoints
-@api_router.get("/documents", tags=["documents"])
-async def list_documents(user_id: str = Depends(validate_token)):
-    """List documents - placeholder for now"""
-    return {"documents": []}
 
 
 # Placeholder for search endpoint
