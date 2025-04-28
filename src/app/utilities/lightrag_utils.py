@@ -280,6 +280,89 @@ async def search_lightrag(
         raise
 
 
+@monitor_lightrag_operation("insert")
+async def ingest_text(
+    rag: LightRAG,
+    content: str,
+    textId: str,
+    title: str = None,
+    metadata: Dict[str, Any] = None,
+) -> Dict[str, Any]:
+    """
+    Ingest plain text into LightRAG
+
+    Args:
+        rag: The LightRAG instance
+        content: The text content to ingest
+        textId: The text ID
+        title: Optional title for the text
+        metadata: Optional additional metadata
+
+    Returns:
+        Dict with status information about the ingestion
+    """
+    try:
+        if not content or not content.strip():
+            raise ValueError("Text content cannot be empty")
+
+        if not textId:
+            raise ValueError("textId is required")
+
+        # Apply configuration parameters
+        chunk_size = CHUNK_SIZE
+
+        # Prepare metadata
+        meta = metadata or {}
+        if title:
+            meta["title"] = title
+
+        # Track start time for performance monitoring
+        start_time = time.time()
+
+        if hasattr(rag, "ainsert"):
+            logger.info("Using async insert for text")
+            # Use async insert if available
+            await rag.ainsert(
+                content,
+                ids=[str(textId)],
+                file_paths=[f"text_{textId}"],  # Virtual path for text
+                chunk_size=chunk_size,
+                metadata=meta,
+            )
+        else:
+            logger.info("Using sync insert for text")
+            # Fall back to sync insert
+            # Note: In a real async context, this blocks the event loop
+            rag.insert(
+                content,
+                ids=[str(textId)],
+                file_paths=[f"text_{textId}"],  # Virtual path for text
+                chunk_size=chunk_size,
+                metadata=meta,
+            )
+
+        # Calculate processing time
+        processing_time = time.time() - start_time
+
+        # Prepare result information
+        result = {
+            "id": textId,
+            "title": title,
+            "content_length": len(content),
+            "processing_time": processing_time,
+            "status": "complete",
+        }
+
+        logger.info(f"Successfully ingested text of length {len(content)}")
+        return result
+    except Exception as e:
+        logger.error(f"Error ingesting text: {e}")
+        # Record error in monitor
+        monitor = get_lightrag_monitor()
+        monitor.record_error()
+        raise
+
+
 @monitor_lightrag_operation("query")
 async def query_lightrag(
     rag: LightRAG, query: str, mode: str = "hybrid", max_chunks: int = 5

@@ -14,7 +14,7 @@ from fastapi import UploadFile, HTTPException, status
 
 from app.config import DATA_DIR
 from app.services.rag_manager import get_rag_manager
-from app.utilities.lightrag_utils import ingest_document
+from app.utilities.lightrag_utils import ingest_document, ingest_text
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,9 @@ VALID_MIME_TYPES = [
 
 # Maximum file size (10MB)
 MAX_FILE_SIZE = 10 * 1024 * 1024
+
+# Maximum text length (1MB)
+MAX_TEXT_LENGTH = 1 * 1024 * 1024
 
 
 class DocumentService:
@@ -154,7 +157,7 @@ class DocumentService:
         file_path = os.path.join(docs_dir, f"{doc_id}_{file.filename}")
 
         # Save file metadata
-        now = datetime.utcnow()
+        now = datetime.now(datetime.timezone.utc)
         metadata = {
             "id": doc_id,
             "user_id": user_id,
@@ -344,7 +347,7 @@ class DocumentService:
             metadata["tags"] = tags
 
         # Update timestamp
-        metadata["updated_at"] = datetime.utcnow()
+        metadata["updated_at"] = datetime.now(datetime.timezone.utc)
 
         # Save updated metadata
         await DocumentService.save_metadata(user_id, all_metadata)
@@ -353,6 +356,131 @@ class DocumentService:
         response_metadata = metadata.copy()
         response_metadata.pop("file_path", None)
         return response_metadata
+
+    @staticmethod
+    async def ingest_text_content(
+        user_id: str,
+        text: str,
+        title: str,
+        description: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Ingest plain text content into LightRAG
+
+        Args:
+            user_id: The user ID
+            text: The text content to ingest
+            title: Title for the text content
+            description: Optional description
+            tags: Optional tags
+
+        Returns:
+            Document metadata
+
+        Raises:
+            HTTPException: If the text is invalid or processing fails
+        """
+        # Validate text content
+        if not text or not text.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Text content cannot be empty",
+            )
+
+        if len(text) > MAX_TEXT_LENGTH:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"Text content exceeds maximum length of {MAX_TEXT_LENGTH} characters",
+            )
+
+        # Generate a unique ID for the text document
+        doc_id = str(uuid4())
+
+        # Save metadata
+        now = datetime.now(datetime.timezone.utc)
+        metadata = {
+            "id": doc_id,
+            "user_id": user_id,
+            "title": title,
+            "description": description or "",
+            "content_type": "text",
+            "content_length": len(text),
+            "created_at": now,
+            "updated_at": now,
+            "tags": tags or [],
+            "status": "processing",
+        }
+
+        # Load existing metadata
+        all_metadata = await DocumentService.load_metadata(user_id)
+        all_metadata[doc_id] = metadata
+
+        # Save updated metadata
+        await DocumentService.save_metadata(user_id, all_metadata)
+
+        try:
+            # Process with LightRAG in the background
+            asyncio.create_task(
+                DocumentService._process_text(user_id, doc_id, text, title)
+            )
+
+            # Return metadata
+            return metadata
+
+        except Exception as e:
+            logger.error(f"Error ingesting text for user {user_id}: {e}")
+
+            # Update status to failed
+            if doc_id in all_metadata:
+                all_metadata[doc_id]["status"] = "failed"
+                await DocumentService.save_metadata(user_id, all_metadata)
+
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to ingest text: {str(e)}",
+            )
+
+    @staticmethod
+    async def _process_text(
+        user_id: str, doc_id: str, content: str, title: str = None
+    ) -> None:
+        """
+        Process text content with LightRAG
+
+        Args:
+            user_id: The user ID
+            doc_id: The document ID
+            content: Text content
+            title: Optional title for the text
+        """
+        try:
+            # Get the RAG instance for the user
+            rag_manager = get_rag_manager()
+            rag = rag_manager.get_instance(user_id)
+
+            # Prepare metadata
+            metadata = {"source": "direct_text_input", "title": title}
+
+            # Ingest the text into LightRAG
+            await ingest_text(rag, content, doc_id, title, metadata)
+
+            # Update status to completed
+            all_metadata = await DocumentService.load_metadata(user_id)
+            if doc_id in all_metadata:
+                all_metadata[doc_id]["status"] = "complete"
+                await DocumentService.save_metadata(user_id, all_metadata)
+
+            logger.info(f"Text {doc_id} processed successfully for user {user_id}")
+
+        except Exception as e:
+            logger.error(f"Error processing text {doc_id} for user {user_id}: {e}")
+
+            # Update status to failed
+            all_metadata = await DocumentService.load_metadata(user_id)
+            if doc_id in all_metadata:
+                all_metadata[doc_id]["status"] = "failed"
+                await DocumentService.save_metadata(user_id, all_metadata)
 
     @staticmethod
     async def delete_document(user_id: str, doc_id: str) -> Dict[str, Any]:

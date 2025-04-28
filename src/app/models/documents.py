@@ -48,6 +48,41 @@ class DocumentUpdate(BaseModel):
     tags: Optional[List[str]] = Field(None, description="List of tags for the document")
 
 
+class TextIngestionRequest(BaseModel):
+    """Model for text ingestion request"""
+
+    text: str = Field(
+        ...,
+        description="Plain text content to ingest",
+        example="This is sample text that will be ingested into LightRAG.",
+    )
+    title: str = Field(..., description="Title for the text content")
+    description: Optional[str] = Field(
+        None, description="Description for the text content"
+    )
+    tags: Optional[List[str]] = Field(
+        default=[], description="List of tags for the text content"
+    )
+
+
+class TextIngestionResponse(BaseModel):
+    """Model for text ingestion response"""
+
+    id: UUID = Field(..., description="Text document unique identifier")
+    title: str = Field(..., description="Title of the text content")
+    description: Optional[str] = Field(
+        None, description="Description of the text content"
+    )
+    content_length: int = Field(
+        ..., description="Length of the text content in characters"
+    )
+    created_at: datetime = Field(..., description="Creation timestamp")
+    updated_at: datetime = Field(..., description="Last update timestamp")
+    tags: List[str] = Field(default=[], description="List of tags for the text content")
+    status: str = Field(..., description="Processing status of the text content")
+    user_id: str = Field(..., description="ID of the user who owns the text content")
+
+
 class DocumentDeleteResponse(BaseModel):
     """Model for document deletion response"""
 

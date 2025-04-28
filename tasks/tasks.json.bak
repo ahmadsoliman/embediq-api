@@ -489,55 +489,9 @@
       "description": "Create API endpoints that allow users to ingest plain text directly into LightRAG without requiring file uploads, similar to the existing document upload functionality.",
       "details": "This task involves extending the EmbedIQ backend to support direct text ingestion into LightRAG instances. The implementation should follow these steps:\n\n1. Create a new `ingest_text` function in `lightrag_utils.py` that:\n   - Accepts plain text content, user ID, and optional metadata parameters\n   - Processes the text similar to how documents are processed\n   - Chunks the text appropriately for embedding\n   - Adds the text to the user's LightRAG instance\n   - Returns appropriate status information\n\n2. Implement a new endpoint in the documents router:\n   - Create a POST endpoint at `/api/documents/text` that accepts JSON with text content\n   - The endpoint should accept the following parameters:\n     - `text` (required): The plain text content to ingest\n     - `title` (optional): A title for the text content\n     - `metadata` (optional): Additional metadata for the text\n\n3. Add corresponding methods to the DocumentService class:\n   - Create a `ingest_text_content` method that handles the business logic\n   - Ensure proper user context is maintained\n   - Handle any necessary preprocessing of text\n\n4. Implement proper validation and error handling:\n   - Validate text is not empty\n   - Check for maximum text length limits\n   - Handle and return appropriate error responses\n   - Ensure authentication and authorization checks\n\n5. Update API documentation:\n   - Add the new endpoint to the OpenAPI/Swagger documentation\n   - Include example requests and responses\n   - Document all parameters and response codes\n\nThe implementation should maintain consistency with the existing document ingestion flow while simplifying the process for plain text content.",
       "testStrategy": "Testing should verify the text ingestion functionality works correctly and integrates properly with the existing system:\n\n1. Unit tests:\n   - Test the `ingest_text` function with various text inputs (short text, long text, special characters)\n   - Test validation logic for empty text and oversized content\n   - Test metadata handling and optional parameters\n\n2. Integration tests:\n   - Test the API endpoint with authenticated requests\n   - Verify text is properly ingested into the correct user's LightRAG instance\n   - Test concurrent text ingestion requests\n\n3. Error handling tests:\n   - Test authentication failures\n   - Test validation errors (empty text, excessive length)\n   - Test system errors (database unavailable, etc.)\n\n4. End-to-end tests:\n   - Ingest text and verify it can be retrieved in search results\n   - Verify text content is properly chunked and embedded\n   - Test that ingested text works correctly in RAG queries\n\n5. Performance tests:\n   - Measure ingestion time for various text lengths\n   - Test system behavior under load with multiple text ingestion requests\n\nAll tests should verify proper HTTP status codes, response formats, and error messages where applicable.",
-      "status": "done",
-      "dependencies": [
-        "6"
-      ],
-      "priority": "medium",
-      "subtasks": [
-        {
-          "id": 1,
-          "title": "Implement ingest_text utility function in lightrag_utils.py",
-          "description": "Create a new utility function that processes plain text for ingestion into LightRAG, including chunking and embedding preparation.",
-          "dependencies": [],
-          "details": "Implementation steps:\n\n1. Open `lightrag_utils.py` and add a new function with this signature:\n```python\ndef ingest_text(text_content: str, user_id: str, title: str = None, metadata: dict = None) -> dict:\n    \"\"\"Process plain text for ingestion into LightRAG.\n    \n    Args:\n        text_content: The plain text to ingest\n        user_id: The ID of the user who owns the LightRAG instance\n        title: Optional title for the text content\n        metadata: Optional additional metadata\n        \n    Returns:\n        dict: Status information about the ingestion process\n    \"\"\"\n```\n\n2. Implement the function to:\n   - Validate the text content is not empty\n   - Generate a unique ID for the text content if not provided in metadata\n   - Apply the same text chunking logic used for documents (reuse existing chunking functions)\n   - Process the chunks for embedding\n   - Add the processed text to the user's LightRAG instance\n   - Return status information including number of chunks processed\n\n3. Reuse existing code patterns from document processing functions like `process_document` or similar\n\n4. Add appropriate error handling and logging\n\nTesting approach:\n- Create unit tests in `tests/test_lightrag_utils.py` that verify:\n  - Text is properly chunked\n  - Empty text is rejected\n  - Metadata is properly associated\n  - The function integrates correctly with the LightRAG instance",
-          "status": "done",
-          "parentTaskId": 11
-        },
-        {
-          "id": 2,
-          "title": "Add text ingestion methods to DocumentService class",
-          "description": "Extend the DocumentService class with methods to handle text ingestion business logic.",
-          "dependencies": [
-            1
-          ],
-          "details": "Implementation steps:\n\n1. Open the DocumentService class file (likely in `services/document_service.py`)\n\n2. Add a new method with this signature:\n```python\nasync def ingest_text_content(self, text: str, title: str = None, metadata: dict = None) -> dict:\n    \"\"\"Ingest plain text content into the user's LightRAG instance.\n    \n    Args:\n        text: The plain text content to ingest\n        title: Optional title for the text content\n        metadata: Optional additional metadata\n        \n    Returns:\n        dict: Status information about the ingestion\n    \"\"\"\n```\n\n3. Implement the method to:\n   - Validate the user context and permissions\n   - Perform basic validation on the text (not empty, within size limits)\n   - Prepare metadata with defaults if not provided\n   - Call the `ingest_text` utility function from lightrag_utils.py\n   - Handle any service-specific logic or transformations\n   - Return appropriate response data\n\n4. Add validation methods as needed:\n```python\ndef _validate_text_content(self, text: str) -> None:\n    \"\"\"Validate text content for ingestion.\"\"\"\n    if not text or not text.strip():\n        raise ValueError(\"Text content cannot be empty\")\n    if len(text) > self.MAX_TEXT_LENGTH:  # Define this constant\n        raise ValueError(f\"Text content exceeds maximum length of {self.MAX_TEXT_LENGTH} characters\")\n```\n\nTesting approach:\n- Create unit tests in `tests/services/test_document_service.py` that verify:\n  - Service properly validates inputs\n  - Service correctly calls the utility function\n  - Error cases are properly handled\n  - User context is maintained",
-          "status": "done",
-          "parentTaskId": 11
-        },
-        {
-          "id": 3,
-          "title": "Implement text ingestion API endpoint in documents router",
-          "description": "Create a new API endpoint that allows users to submit plain text for ingestion into LightRAG.",
-          "dependencies": [
-            2
-          ],
-          "details": "Implementation steps:\n\n1. Open the documents router file (likely in `routers/documents.py` or similar)\n\n2. Create a request model for text ingestion:\n```python\nclass TextIngestionRequest(BaseModel):\n    text: str = Field(..., description=\"Plain text content to ingest\")\n    title: Optional[str] = Field(None, description=\"Optional title for the text content\")\n    metadata: Optional[Dict[str, Any]] = Field(None, description=\"Optional metadata for the text content\")\n```\n\n3. Add a new endpoint:\n```python\n@router.post(\"/text\", response_model=TextIngestionResponse, status_code=status.HTTP_201_CREATED)\nasync def ingest_text(\n    request: TextIngestionRequest,\n    document_service: DocumentService = Depends(get_document_service),\n    current_user: User = Depends(get_current_user)\n) -> TextIngestionResponse:\n    \"\"\"Ingest plain text content into LightRAG.\"\"\"\n    try:\n        result = await document_service.ingest_text_content(\n            text=request.text,\n            title=request.title,\n            metadata=request.metadata\n        )\n        return TextIngestionResponse(\n            success=True,\n            message=\"Text successfully ingested\",\n            details=result\n        )\n    except ValueError as e:\n        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))\n    except Exception as e:\n        # Log the exception\n        logger.error(f\"Error ingesting text: {str(e)}\")\n        raise HTTPException(\n            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,\n            detail=\"An error occurred while ingesting the text\"\n        )\n```\n\n4. Create a response model:\n```python\nclass TextIngestionResponse(BaseModel):\n    success: bool\n    message: str\n    details: Optional[Dict[str, Any]] = None\n```\n\nTesting approach:\n- Create API tests in `tests/routers/test_documents.py` that verify:\n  - Endpoint accepts valid text and returns correct response\n  - Endpoint properly validates request data\n  - Authentication and authorization are enforced\n  - Error responses are properly formatted",
-          "status": "done",
-          "parentTaskId": 11
-        },
-        {
-          "id": 4,
-          "title": "Update API documentation and add integration tests",
-          "description": "Update the OpenAPI documentation for the new endpoint and create comprehensive integration tests.",
-          "dependencies": [
-            3
-          ],
-          "details": "Implementation steps:\n\n1. Update OpenAPI documentation:\n   - Ensure the new endpoint has proper descriptions in the router decorator\n   - Add detailed descriptions to the request and response models\n   - Include examples in the Field definitions:\n   ```python\n   text: str = Field(\n       ..., \n       description=\"Plain text content to ingest\",\n       example=\"This is sample text that will be ingested into LightRAG.\"\n   )\n   ```\n\n2. Create integration tests in `tests/integration/test_text_ingestion.py`:\n   - Test the full flow from API request to LightRAG ingestion\n   - Test with various text sizes and content types\n   - Test error cases and edge conditions\n   - Verify the ingested text is properly retrievable\n\n3. Add example API usage to documentation:\n   - Create a markdown file in the docs directory showing example requests using curl and Python\n   - Include sample responses\n   - Document all possible error codes and their meanings\n\n4. Update any frontend components or client libraries:\n   - If there's a client SDK, add methods for the new endpoint\n   - Update any API reference documentation\n   - Add the new functionality to any API usage guides\n\nTesting approach:\n- Manually test the API endpoint using tools like Postman or curl\n- Verify the OpenAPI documentation is correctly generated and accessible\n- Run the integration tests to ensure end-to-end functionality\n- Test with real-world text samples of varying complexity and size",
-          "status": "done",
-          "parentTaskId": 11
-        }
-      ]
+      "status": "pending",
+      "dependencies": [],
+      "priority": "medium"
     }
   ],
   "metadata": {

@@ -25,6 +25,8 @@ from app.models.documents import (
     DocumentList,
     DocumentUpdate,
     DocumentDeleteResponse,
+    TextIngestionRequest,
+    TextIngestionResponse,
 )
 from app.services.document_service import DocumentService
 
@@ -160,6 +162,54 @@ async def update_document(
         tags=update_data.tags,
     )
     return document
+
+
+@documents_router.post(
+    "/text",
+    response_model=TextIngestionResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Ingest text content",
+    description="Ingest plain text content into LightRAG",
+)
+async def ingest_text(
+    request: TextIngestionRequest,
+    user_id: str = Depends(validate_token),
+):
+    """
+    Ingest plain text content into LightRAG
+
+    This endpoint allows users to ingest plain text content directly into LightRAG
+    without requiring a file upload. The text is processed and indexed for search
+    and query operations.
+
+    - **text**: The plain text content to ingest
+    - **title**: Title for the text content
+    - **description**: Optional description for the text content
+    - **tags**: Optional list of tags for the text content
+    """
+    # Add detailed logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Text ingestion request received: title={request.title}")
+    logger.info(f"Text length: {len(request.text)} characters")
+    logger.info(f"User ID: {user_id}")
+
+    # Parse tags
+    tag_list = request.tags or []
+    if tag_list:
+        logger.info(f"Tags: {tag_list}")
+
+    # Ingest the text
+    result = await DocumentService.ingest_text_content(
+        user_id=user_id,
+        text=request.text,
+        title=request.title,
+        description=request.description,
+        tags=tag_list,
+    )
+
+    # Return the text metadata
+    logger.info(f"Text ingested successfully with ID: {result.get('id')}")
+    return result
 
 
 @documents_router.delete(
