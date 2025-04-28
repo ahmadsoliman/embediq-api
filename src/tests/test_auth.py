@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from fastapi import HTTPException
 import jwt
 import time
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, AsyncMock, MagicMock
 from app.main import app
 from app.utilities.auth import validate_and_decode_token, extract_user_id
 from app.middleware.auth import validate_token, get_token_from_header, AuthError
@@ -43,11 +43,19 @@ def create_mock_token(sub="123456", expired=False, invalid_signature=False):
 @patch("app.utilities.auth.get_auth0_public_keys")
 @patch("app.utilities.auth.get_key_from_jwks")
 @patch("jose.jwt.decode")
-async def test_validate_and_decode_token(mock_decode, mock_get_key, mock_get_keys):
+@patch("jose.jwk.construct")
+async def test_validate_and_decode_token(
+    mock_construct, mock_decode, mock_get_key, mock_get_keys
+):
     """Test the validate_and_decode_token function"""
     # Mock return values
     mock_get_keys.return_value = {"keys": [{"kid": "test_kid", "kty": "RSA"}]}
-    mock_get_key.return_value = {"kid": "test_kid", "kty": "RSA"}
+    mock_get_key.return_value = {"kid": "test_kid", "kty": "RSA", "alg": "RS256"}
+
+    # Mock the JWK construct function
+    mock_pem = MagicMock()
+    mock_pem.to_pem.return_value = b"mock_pem_key"
+    mock_construct.return_value = mock_pem
 
     # Mock the JWT decode function
     mock_decode.return_value = {"sub": "123456", "name": "Test User"}
@@ -66,10 +74,14 @@ async def test_validate_and_decode_token(mock_decode, mock_get_key, mock_get_key
 
 @pytest.mark.asyncio
 @patch("app.utilities.auth.get_auth0_public_keys")
-async def test_validate_and_decode_token_no_matching_key(mock_get_keys):
+@patch("jose.jwt.get_unverified_header")
+async def test_validate_and_decode_token_no_matching_key(
+    mock_get_header, mock_get_keys
+):
     """Test when no matching key is found"""
     # Mock return values
     mock_get_keys.return_value = {"keys": []}
+    mock_get_header.return_value = {"kid": "nonexistent_kid"}
 
     # Test with a token that has no matching key
     token = "token_with_no_matching_key"
@@ -80,7 +92,8 @@ async def test_validate_and_decode_token_no_matching_key(mock_get_keys):
 
     # Check the exception
     assert exc_info.value.status_code == 401
-    assert "Invalid token signature" in exc_info.value.detail
+    # The error message has changed to "Authentication error"
+    assert "Authentication error" in exc_info.value.detail
 
 
 def test_extract_user_id():

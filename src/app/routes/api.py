@@ -11,6 +11,7 @@ from app.routes.datasources import datasources_router
 from app.routes.monitoring import monitoring_router
 from app.routes.backup import backup_router
 from app.routes.config import config_router
+from app.routes.docs import docs_router
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,8 @@ logger.info("Including backup_router in api_router")
 api_router.include_router(backup_router)
 logger.info("Including config_router in api_router")
 api_router.include_router(config_router)
+logger.info("Including docs_router in api_router")
+api_router.include_router(docs_router)
 logger.info(f"API router now has {len(api_router.routes)} routes")
 
 

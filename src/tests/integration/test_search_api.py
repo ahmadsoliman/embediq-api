@@ -81,11 +81,14 @@ def mock_rag_instance():
         manager.get_instance.return_value = mock_rag
         mock_get_manager.return_value = manager
 
-        # Also patch query_lightrag utility with AsyncMock
+        # Patch both search_lightrag and query_lightrag utilities with AsyncMock
         with patch(
             "app.utilities.lightrag_utils.query_lightrag", new_callable=AsyncMock
-        ) as mock_query:
+        ) as mock_query, patch(
+            "app.utilities.lightrag_utils.search_lightrag", new_callable=AsyncMock
+        ) as mock_search:
             mock_query.return_value = mock_response
+            mock_search.return_value = search_results
             yield mock_rag
 
 

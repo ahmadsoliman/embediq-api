@@ -303,5 +303,5 @@ class DataSourceTypeList(BaseModel):
     """Model for data source type listing response"""
 
     types: List[DataSourceTypeInfo] = Field(
-        ..., description="List of data source types"
+        default_factory=list, description="List of data source types"
     )

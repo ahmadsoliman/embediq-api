@@ -256,11 +256,10 @@ async def search_lightrag(
     """
     try:
         # Apply configuration parameters
+        # Create QueryParam with only supported parameters
         param = QueryParam(
             mode=mode,
             top_k=max_chunks,
-            chunk_size=CHUNK_SIZE,
-            max_depth=GRAPH_TRAVERSAL_DEPTH,
         )
 
         if hasattr(rag, "asearch"):
@@ -299,13 +298,10 @@ async def query_lightrag(
     """
     try:
         # Apply configuration parameters
+        # Create QueryParam with only supported parameters
         param = QueryParam(
             mode=mode,
             top_k=max_chunks,
-            chunk_size=CHUNK_SIZE,
-            max_depth=GRAPH_TRAVERSAL_DEPTH,
-            use_cache=CACHE_ENABLED,
-            cache_size=CACHE_SIZE,
         )
 
         if hasattr(rag, "aquery"):
