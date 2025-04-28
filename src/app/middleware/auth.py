@@ -1,8 +1,12 @@
-from fastapi import Request, HTTPException, status
+from fastapi import Request, HTTPException, status, Depends
 import logging
+import os
 from app.utilities.auth import validate_and_decode_token, extract_user_id
 
 logger = logging.getLogger(__name__)
+
+# Import admin user IDs from config
+from app.config.app_config import ADMIN_USER_IDS
 
 
 async def validate_token(request: Request):
@@ -87,3 +91,32 @@ def get_token_from_header(request: Request) -> str:
         )
 
     return parts[1]
+
+
+async def admin_required(request: Request, user_id: str = Depends(validate_token)):
+    """
+    Dependency for requiring admin privileges
+
+    This function is used with FastAPI's dependency injection system to
+    ensure that the authenticated user has admin privileges.
+
+    Args:
+        request: The FastAPI request object
+        user_id: The authenticated user ID (from validate_token dependency)
+
+    Returns:
+        The authenticated user ID if the user has admin privileges
+
+    Raises:
+        HTTPException: If the user does not have admin privileges
+    """
+    # Check if the user ID is in the list of admin user IDs
+    if not ADMIN_USER_IDS or user_id not in ADMIN_USER_IDS:
+        logger.warning(f"User {user_id} attempted to access admin-only endpoint")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required",
+        )
+
+    logger.info(f"Admin access granted for user {user_id}")
+    return user_id

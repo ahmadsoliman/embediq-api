@@ -5,9 +5,21 @@ Utilities for working with LightRAG instances
 import os
 import logging
 import asyncio
-from typing import Optional, Callable
+import time
+from typing import Optional, Callable, Dict, Any
 
-from app.config import VECTOR_DIMENSION, MAX_TOKEN_SIZE
+from app.config import (
+    VECTOR_DIMENSION,
+    MAX_TOKEN_SIZE,
+    CHUNK_SIZE,
+    GRAPH_TRAVERSAL_DEPTH,
+    CACHE_ENABLED,
+    CACHE_SIZE,
+)
+from app.monitoring.lightrag_monitor import (
+    monitor_lightrag_operation,
+    get_lightrag_monitor,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -174,6 +186,7 @@ async def initialize_lightrag_instance(
     return rag
 
 
+@monitor_lightrag_operation("insert")
 async def ingest_document(
     rag: LightRAG, content: str, documentId: str, file_path: str = None
 ) -> None:
@@ -184,6 +197,7 @@ async def ingest_document(
         rag: The LightRAG instance
         content: The document content
         documentId: The document ID
+        file_path: Optional file path for the document
     """
     try:
         if not documentId:
@@ -192,30 +206,39 @@ async def ingest_document(
         if not file_path:
             file_path = documentId
 
+        # Apply configuration parameters
+        chunk_size = CHUNK_SIZE
+
         if hasattr(rag, "ainsert"):
-            print("Using async insert")
+            logger.info("Using async insert")
             # Use async insert if available
             await rag.ainsert(
                 content,
                 ids=[str(documentId)],
                 file_paths=[str(file_path)],
+                chunk_size=chunk_size,
             )
         else:
-            print("Using sync insert")
+            logger.info("Using sync insert")
             # Fall back to sync insert
             # Note: In a real async context, this blocks the event loop
             rag.insert(
                 content,
                 ids=[str(documentId)],
                 file_paths=[str(file_path)],
+                chunk_size=chunk_size,
             )
-        print("Ingested document")
+
         logger.info(f"Successfully ingested document of length {len(content)}")
     except Exception as e:
         logger.error(f"Error ingesting document: {e}")
+        # Record error in monitor
+        monitor = get_lightrag_monitor()
+        monitor.record_error()
         raise
 
 
+@monitor_lightrag_operation("search")
 async def search_lightrag(
     rag: LightRAG, query: str, mode: str = "hybrid", max_chunks: int = 5
 ) -> list:
@@ -232,7 +255,13 @@ async def search_lightrag(
         List of search results
     """
     try:
-        param = QueryParam(mode=mode, top_k=max_chunks)
+        # Apply configuration parameters
+        param = QueryParam(
+            mode=mode,
+            top_k=max_chunks,
+            chunk_size=CHUNK_SIZE,
+            max_depth=GRAPH_TRAVERSAL_DEPTH,
+        )
 
         if hasattr(rag, "asearch"):
             # Use async search if available
@@ -246,9 +275,13 @@ async def search_lightrag(
         return results
     except Exception as e:
         logger.error(f"Error searching with LightRAG: {e}")
+        # Record error in monitor
+        monitor = get_lightrag_monitor()
+        monitor.record_error()
         raise
 
 
+@monitor_lightrag_operation("query")
 async def query_lightrag(
     rag: LightRAG, query: str, mode: str = "hybrid", max_chunks: int = 5
 ) -> str:
@@ -265,7 +298,15 @@ async def query_lightrag(
         The query response
     """
     try:
-        param = QueryParam(mode=mode, top_k=max_chunks)
+        # Apply configuration parameters
+        param = QueryParam(
+            mode=mode,
+            top_k=max_chunks,
+            chunk_size=CHUNK_SIZE,
+            max_depth=GRAPH_TRAVERSAL_DEPTH,
+            use_cache=CACHE_ENABLED,
+            cache_size=CACHE_SIZE,
+        )
 
         if hasattr(rag, "aquery"):
             # Use async query if available
@@ -279,4 +320,7 @@ async def query_lightrag(
         return response
     except Exception as e:
         logger.error(f"Error querying LightRAG: {e}")
+        # Record error in monitor
+        monitor = get_lightrag_monitor()
+        monitor.record_error()
         raise

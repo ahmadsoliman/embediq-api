@@ -1,9 +1,17 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 import logging
-from app.config import DATABASE_URL, DATA_DIR
+from app.config.app_config import (
+    DATABASE_URL,
+    DATA_DIR,
+    BACKUP_ENABLED,
+    MONITORING_ENABLED,
+)
 import os
 from app.routes.api import api_router
 from app.services.datasource_registry import datasource_registry
+from app.monitoring.system_monitor import SystemMonitor
+from app.monitoring.lightrag_monitor import get_lightrag_monitor
+from app.backup.backup_service import get_backup_service
 
 # Configure logging
 logging.basicConfig(
@@ -42,6 +50,36 @@ async def startup_event():
     # Create data directory if it doesn't exist
     os.makedirs(data_dir, exist_ok=True)
 
+    # Initialize monitoring
+    if MONITORING_ENABLED:
+        logger.info("Initializing monitoring services")
+        # Initialize system monitor
+        system_monitor = SystemMonitor(data_dir=data_dir)
+        # Initialize LightRAG monitor
+        lightrag_monitor = get_lightrag_monitor()
+        logger.info("Monitoring services initialized")
+
+    # Initialize backup service
+    if BACKUP_ENABLED:
+        logger.info("Initializing backup service")
+        backup_service = get_backup_service()
+        # Start backup scheduler
+        await backup_service.start_backup_scheduler()
+        logger.info("Backup service initialized and scheduler started")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Execute tasks on application shutdown"""
+    logger.info("Shutting down EmbedIQ Backend API")
+
+    # Stop backup scheduler
+    if BACKUP_ENABLED:
+        logger.info("Stopping backup scheduler")
+        backup_service = get_backup_service()
+        await backup_service.stop_backup_scheduler()
+        logger.info("Backup scheduler stopped")
+
 
 @app.get("/")
 async def root():
@@ -53,6 +91,33 @@ async def root():
 async def health_check():
     """Health check endpoint for Docker healthchecks"""
     try:
+        # Use system monitor for health check if monitoring is enabled
+        if MONITORING_ENABLED:
+            system_monitor = SystemMonitor(data_dir=DATA_DIR)
+            health_data = system_monitor.get_health_check()
+
+            # Add database connection check
+            try:
+                # In Docker, verify database connection and extensions
+                if os.path.exists("/.dockerenv"):
+                    from app.db.connection import verify_extensions
+
+                    extensions_status = verify_extensions()
+                    health_data["database"] = {
+                        "connected": True,
+                        "extensions": extensions_status,
+                    }
+                else:
+                    health_data["database"] = {
+                        "connected": False,
+                        "message": "Skipped in local dev mode",
+                    }
+            except Exception as db_error:
+                health_data["database"] = {"connected": False, "error": str(db_error)}
+
+            return health_data
+
+        # Fall back to basic health check if monitoring is disabled
         # For local testing, skip the database connection check
         if not os.path.exists("/.dockerenv"):
             return {

@@ -1,3 +1,9 @@
+"""
+Application configuration module for EmbedIQ backend.
+
+This module provides configuration options for the application.
+"""
+
 import os
 from dotenv import load_dotenv
 
@@ -27,7 +33,7 @@ else:
     DATA_DIR = os.getenv(
         "DATA_DIR",
         os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data"
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data"
         ),
     )
 

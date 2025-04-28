@@ -8,6 +8,9 @@ from app.routes.documents import documents_router
 from app.routes.search import search_router
 from app.routes.graph import graph_router
 from app.routes.datasources import datasources_router
+from app.routes.monitoring import monitoring_router
+from app.routes.backup import backup_router
+from app.routes.config import config_router
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +40,12 @@ logger.info("Including graph_router in api_router")
 api_router.include_router(graph_router, prefix="/graph")
 logger.info("Including datasources_router in api_router")
 api_router.include_router(datasources_router, prefix="/datasources")
+logger.info("Including monitoring_router in api_router")
+api_router.include_router(monitoring_router)
+logger.info("Including backup_router in api_router")
+api_router.include_router(backup_router)
+logger.info("Including config_router in api_router")
+api_router.include_router(config_router)
 logger.info(f"API router now has {len(api_router.routes)} routes")
 
 

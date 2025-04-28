@@ -440,7 +440,7 @@
       "id": 10,
       "title": "Implement Resource Management and Monitoring",
       "description": "Add resource management, monitoring, and backup capabilities to the system.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         4,
         5,
@@ -457,7 +457,7 @@
           "id": 1,
           "title": "Implement System Monitoring and Logging",
           "description": "Develop and deploy monitoring endpoints to track system resource usage, and add comprehensive logging for critical operations and errors.",
-          "status": "pending",
+          "status": "done",
           "dependencies": [],
           "details": "Identify key system resources and operations to monitor (CPU, memory, disk, network, LightRAG performance metrics). Select or extend monitoring tools to expose these metrics via endpoints (e.g., REST, Prometheus). Integrate logging libraries to capture critical events and errors, ensuring logs are structured and accessible for troubleshooting. Define alerting thresholds and procedures for incident response. Validate monitoring and logging coverage through proof-of-concept testing and adjust based on feedback.[3][5]"
         },
@@ -465,7 +465,7 @@
           "id": 2,
           "title": "Implement Backup and Data Replication Utilities",
           "description": "Design and implement the backup strategy as outlined in the PRD, including regular snapshots of user data directories, database backups, and utilities for data replication across availability zones.",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1
           ],
@@ -475,7 +475,7 @@
           "id": 3,
           "title": "Add Configuration and Performance Tuning Options for LightRAG",
           "description": "Expose configuration options for tuning LightRAG parameters (chunk sizes, embedding model parameters, graph traversal depth) and implement performance monitoring for LightRAG operations.",
-          "status": "pending",
+          "status": "done",
           "dependencies": [
             1
           ],
